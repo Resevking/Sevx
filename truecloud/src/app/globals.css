@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    html {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+    }
+    body {
+        @apply bg-white text-ink-900;
+    }
+    ::selection {
+        @apply bg-brand-100 text-brand-900;
+    }
+}
+
+@layer components {
+    .container-page {
+        @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
+    }
+    .btn {
+        @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60;
+    }
+    .btn-sm {
+        @apply px-3 py-1.5 text-sm;
+    }
+    .btn-lg {
+        @apply px-6 py-3 text-base;
+    }
+    .btn-primary {
+        @apply bg-brand-600 text-white shadow-sm hover:bg-brand-700;
+    }
+    .btn-secondary {
+        @apply border border-ink-200 bg-white text-ink-900 shadow-sm hover:border-ink-300 hover:bg-ink-50;
+    }
+    .btn-ghost {
+        @apply text-ink-700 hover:bg-ink-100 hover:text-ink-900;
+    }
+    .btn-danger {
+        @apply bg-red-600 text-white shadow-sm hover:bg-red-700;
+    }
+    .btn-light {
+        @apply bg-white text-ink-950 hover:bg-ink-100;
+    }
+    .input {
+        @apply block w-full rounded-lg border border-ink-200 bg-white px-3.5 py-2.5 text-sm text-ink-900 shadow-sm placeholder:text-ink-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 disabled:bg-ink-50;
+    }
+    .label {
+        @apply mb-1.5 block text-sm font-medium text-ink-800;
+    }
+    .card {
+        @apply rounded-2xl border border-ink-100 bg-white shadow-card;
+    }
+    .badge {
+        @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold;
+    }
+    .prose-legal h2 {
+        @apply mb-3 mt-10 text-xl font-semibold text-ink-950;
+    }
+    .prose-legal h3 {
+        @apply mb-2 mt-6 font-semibold text-ink-900;
+    }
+    .prose-legal p,
+    .prose-legal li {
+        @apply leading-7 text-ink-700;
+    }
+    .prose-legal p {
+        @apply mb-4;
+    }
+    .prose-legal ul {
+        @apply mb-4 list-disc space-y-1 pl-6;
+    }
+    .prose-legal a {
+        @apply text-brand-700 underline underline-offset-2;
+    }
+}
+
+@layer utilities {
+    .bg-grid {
+        background-image:
+            linear-gradient(to right, rgb(13 16 24 / 0.05) 1px, transparent 1px),
+            linear-gradient(to bottom, rgb(13 16 24 / 0.05) 1px, transparent 1px);
+        background-size: 44px 44px;
+    }
+    .bg-grid-dark {
+        background-image:
+            linear-gradient(to right, rgb(255 255 255 / 0.06) 1px, transparent 1px),
+            linear-gradient(to bottom, rgb(255 255 255 / 0.06) 1px, transparent 1px);
+        background-size: 44px 44px;
+    }
+}

@@ -1,0 +1,50 @@
+{
+    "name": "truecloud",
+    "version": "1.0.0",
+    "private": true,
+    "description": "TrueCloud – Cloud-Speicher mit Dashboard, OVHcloud Object Storage und Stripe-Abos (truecloud.online)",
+    "scripts": {
+        "dev": "next dev",
+        "build": "prisma generate && next build",
+        "start": "next start",
+        "lint": "next lint",
+        "typecheck": "tsc --noEmit",
+        "test": "vitest run",
+        "db:migrate": "prisma migrate dev",
+        "db:deploy": "prisma migrate deploy",
+        "stripe:setup": "tsx --env-file=.env scripts/stripe-setup.ts",
+        "ovh:setup": "tsx --env-file=.env scripts/ovh-setup.ts",
+        "test:e2e": "node --env-file=.env tests/e2e/api.e2e.mjs",
+        "test:stripe-sync": "tsx --conditions=react-server --env-file=.env tests/e2e/stripe-sync.check.ts"
+    },
+    "dependencies": {
+        "@aws-sdk/client-s3": "3.999.0",
+        "@aws-sdk/s3-request-presigner": "3.999.0",
+        "@prisma/client": "6.19.3",
+        "bcryptjs": "3.0.3",
+        "clsx": "2.1.1",
+        "lucide-react": "0.577.0",
+        "next": "15.5.28",
+        "nodemailer": "7.0.13",
+        "react": "19.2.9",
+        "react-dom": "19.2.9",
+        "server-only": "0.0.1",
+        "stripe": "18.5.0",
+        "zod": "3.25.76"
+    },
+    "devDependencies": {
+        "@types/node": "22.19.1",
+        "@types/nodemailer": "7.0.12",
+        "@types/react": "19.2.7",
+        "@types/react-dom": "19.2.3",
+        "autoprefixer": "10.4.21",
+        "eslint": "8.57.1",
+        "eslint-config-next": "15.5.28",
+        "postcss": "8.5.6",
+        "prisma": "6.19.3",
+        "tailwindcss": "3.4.19",
+        "tsx": "4.20.6",
+        "typescript": "5.9.3",
+        "vitest": "3.2.4"
+    }
+}

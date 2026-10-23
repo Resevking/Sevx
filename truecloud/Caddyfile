@@ -1,0 +1,8 @@
+truecloud.online {
+	encode zstd gzip
+	reverse_proxy app:3000
+}
+
+www.truecloud.online {
+	redir https://truecloud.online{uri} permanent
+}
