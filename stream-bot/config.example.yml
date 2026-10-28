@@ -1,0 +1,235 @@
+# =====================================================================
+#  Stream-Bot – Konfiguration
+#  1. Diese Datei nach "config.yml" kopieren
+#  2. Anpassen (alles mit # davor ist ein Kommentar)
+#  3. Mit "npm run check" prüfen, mit "npm start" starten
+#  Geheimnisse (Client-ID, OBS-Passwort) gehören in die .env, nicht hierher!
+# =====================================================================
+
+twitch:
+  # Dein Twitch-Kanal (Login-Name)
+  channel: deinkanal
+
+bot:
+  prefix: "!"
+  # Mods und Streamer müssen Cooldowns nicht abwarten
+  modsIgnoreCooldown: true
+  # Antwort, wenn jemand einen Befehl ohne Berechtigung nutzt (leer = ignorieren)
+  noPermissionMessage: ""
+  # Nachricht, wenn der Bot den Chat betritt (leer = nichts sagen)
+  greetOnJoin: ""
+
+obs:
+  enabled: true
+  # OBS → Werkzeuge → WebSocket-Server-Einstellungen. Passwort kommt in die .env (OBS_PASSWORD)
+  url: ws://127.0.0.1:4455
+  # Standard-Mikrofon für !mute / !unmute (Name wie im OBS-Audiomixer)
+  defaultMic: Mikrofon/AUX
+
+# ---------------------------------------------------------------------
+# Eigene Befehle
+#
+#   response:     Antwort im Chat (eine Liste = zufällige Antwort)
+#   actions:      Aktionen (siehe unten), werden nach der Antwort ausgeführt
+#   aliases:      weitere Namen für denselben Befehl
+#   permission:   everyone | subscriber | vip | moderator | broadcaster
+#   cooldown:     Sekunden bis der Befehl wieder geht (Standard 5)
+#   userCooldown: Sekunden pro Nutzer
+#
+# Platzhalter in Texten:
+#   {user} Name des Nutzers     {touser} erstes Wort nach dem Befehl (oder {user})
+#   {args} alles nach dem Befehl  {1} {2} … einzelne Wörter
+#   {count} wie oft der Befehl benutzt wurde   {counter:name} Wert eines Zählers
+#   {channel} {uptime} {game} {title}
+#   {random:1-100} Zufallszahl    {pick:a|b|c} zufällige Auswahl
+# ---------------------------------------------------------------------
+commands:
+  discord:
+    response: "Komm auf unseren Discord: https://discord.gg/DEINLINK 💬"
+    aliases: [dc]
+    cooldown: 30
+
+  socials: "Instagram: @deinname · TikTok: @deinname · YouTube: youtube.com/@deinname"
+
+  hug:
+    response: "{user} umarmt {touser} 🤗"
+    cooldown: 3
+
+  lurk:
+    response:
+      - "{user} ist jetzt im Lurk-Modus. Viel Spaß! 👀"
+      - "{user} schaut leise zu. Danke für den Support! 💜"
+
+  "8ball":
+    response: "🎱 {pick:Ja!|Nein.|Vielleicht…|Frag später nochmal|Auf jeden Fall!|Never!}"
+    cooldown: 10
+
+  liebe:
+    response: "Zwischen {user} und {touser} sind es {random:0-100}% Liebe 💘"
+
+  # Todeszähler: Mods tippen !tod → Zähler +1, Textquelle in OBS aktualisieren, Chat-Nachricht
+  tod:
+    permission: moderator
+    cooldown: 2
+    actions:
+      - counter: { name: tode, add: 1 }
+      - text: { source: "Todeszähler", text: "Tode: {counter:tode}" }
+      - say: "💀 Schon wieder! Tode bisher: {counter:tode}"
+
+  # Mods schalten auf die "Pause"-Szene und das Mikro stumm
+  pause:
+    permission: moderator
+    actions:
+      - scene: Pause
+      - mute: Mikrofon/AUX
+      - say: "Kurze Pause – bin gleich zurück! ☕"
+
+  weiter:
+    permission: moderator
+    actions:
+      - scene: Hauptszene
+      - unmute: Mikrofon/AUX
+
+  # Zuschauer dürfen 5 Sekunden Konfetti zeigen (einmal pro Minute)
+  konfetti:
+    cooldown: 60
+    actions:
+      - source: { source: "Konfetti", visible: true, duration: 5 }
+
+# ---------------------------------------------------------------------
+# Eingebaute Befehle – hier nur, wenn du etwas ändern willst.
+#   commands (befehle) · uptime (laufzeit) · followage (folgezeit) · title (titel)
+#   game (spiel, kategorie) · so (shoutout) · clip · scene (szene) · scenes (szenen)
+#   source (quelle) · mute (stumm) · unmute (laut) · replay · permit (erlauben)
+#   addcmd · editcmd · delcmd · counter (zähler)
+# ---------------------------------------------------------------------
+builtins:
+  clip: { cooldown: 60 }
+  # replay: false          # Befehl komplett abschalten
+  # scene: { permission: vip, aliases: [szene, sz] }
+
+# ---------------------------------------------------------------------
+# Timer: Nachrichten in regelmäßigen Abständen
+#   interval:     Minuten zwischen zwei Nachrichten
+#   minChatLines: so viele Chat-Nachrichten müssen seitdem geschrieben worden sein
+#   onlyWhenLive: nur senden, wenn der Stream läuft (Standard: true)
+#   messages:     werden der Reihe nach gesendet (random: true für zufällig)
+# ---------------------------------------------------------------------
+timers:
+  - name: werbung
+    interval: 15
+    minChatLines: 5
+    messages:
+      - "Gefällt dir der Stream? Dann lass gerne einen Follow da! 💜"
+      - "Komm auf unseren Discord: https://discord.gg/DEINLINK"
+      - "Alle Befehle findest du mit !befehle"
+
+# ---------------------------------------------------------------------
+# Moderation (der Bot muss Moderator sein: im Chat "/mod botname")
+#   Ein Filter ist aktiv, sobald sein Abschnitt hier steht.
+# ---------------------------------------------------------------------
+moderation:
+  enabled: true
+  # Wer wird nicht moderiert? (Streamer immer ausgenommen)
+  exempt: [moderator, vip]
+
+  links:
+    allowSubscribers: false
+    # Diese Domains sind immer erlaubt (inkl. Subdomains)
+    whitelist: [twitch.tv, youtube.com, youtu.be]
+    # !permit @name erlaubt einen Link für so viele Sekunden
+    permitSeconds: 60
+
+  caps:
+    minLength: 15     # erst ab so vielen Buchstaben prüfen (Emotes zählen nicht)
+    maxPercent: 70
+
+  # bannedWords:
+  #   # Text = Teilwort (Groß/klein egal), /…/ = regulärer Ausdruck
+  #   words: [schimpfwort, "/\\bspam+\\b/"]
+  #   timeout: 600     # eigene Strafe in Sekunden (sonst Stufen unten)
+
+  length:
+    max: 400
+
+  emotes:
+    max: 15
+
+  punishment:
+    # Strafen bei wiederholten Verstößen: "delete" = Nachricht löschen, Zahl = Timeout in Sekunden
+    steps: [delete, 60, 600]
+    resetAfter: 60   # Minuten, nach denen Verstöße vergessen werden
+    warn: true       # Hinweis in den Chat schreiben
+
+# ---------------------------------------------------------------------
+# Events: was passiert bei Follow, Sub, Raid …
+#   Jede Liste besteht aus Aktionen (siehe unten) und läuft nacheinander ab,
+#   damit sich Einblendungen nicht überlappen.
+#
+#   Platzhalter: {user} überall, außerdem
+#     sub/resub:  {months} {streak} {tier} {message}
+#     subgift:    {recipient} {tier}       giftbomb: {amount} {tier}
+#     raid:       {viewers}                cheer:    {bits} {message}
+#     redemptions (Kanalpunkte): {reward} {cost} {input}
+#
+# Aktionen:
+#   - say: "Text"                                     Chat-Nachricht
+#   - scene: "Szenenname"                             Szene wechseln
+#   - source: { source: "Name", visible: true, duration: 5, scene: "optional" }
+#                                                     Quelle ein/aus (toggle), optional nur für X Sekunden
+#   - mute: "Mikrofon" / unmute: … / toggleMute: …    Audioquelle stumm schalten
+#   - text: { source: "Textquelle", text: "…" }       Text einer OBS-Textquelle setzen
+#   - media: "Medienquelle"                           Video/Sound neu starten
+#   - filter: { source: "Kamera", filter: "Blur", enabled: toggle }
+#   - replay: true                                    Replay-Puffer speichern
+#   - wait: 2                                         Sekunden warten
+#   - counter: { name: tode, add: 1 }                 Zähler ändern (oder set: 0)
+#   - shoutout: "{user}"                              Shoutout (offiziell + Chat)
+#   - timeout: { user: "{user}", seconds: 60 }        Timeout (z.B. Kanalpunkte "Timeout mich")
+# ---------------------------------------------------------------------
+events:
+  follow:
+    - say: "Danke fürs Folgen, {user}! 💜"
+    - text: { source: "Letzter Follower", text: "{user}" }
+
+  sub:
+    - say: "Danke für den Sub, {user}! ({tier}) 🎉"
+  resub:
+    - say: "{user} ist seit {months} Monaten dabei! Danke! 🎉"
+  subgift:
+    - say: "{user} hat {recipient} einen Sub geschenkt! 🎁"
+  giftbomb:
+    - say: "WOW! {user} verschenkt {amount} Subs! 🎁🎁🎁"
+
+  raid:
+    minViewers: 2
+    actions:
+      - say: "RAID! {user} kommt mit {viewers} Leuten vorbei – willkommen! 🚀"
+      - shoutout: "{user}"
+      - source: { source: "Raid-Alert", visible: true, duration: 8 }
+
+  cheer:
+    minBits: 100
+    actions:
+      - say: "Danke für {bits} Bits, {user}! 💎"
+
+  firstMessage:
+    - say: "Willkommen im Chat, {user}! 👋"
+
+  # Kanalpunkte: der Name muss genau wie die Belohnung bei Twitch heißen
+  redemptions:
+    "Hydrieren!":
+      - say: "{user} sagt: Trink was! 💧"
+      - source: { source: "Wasserglas", visible: true, duration: 10 }
+    "Kamera aus":
+      - source: { source: "Kamera", visible: false, duration: 30 }
+    "Timeout mich":
+      - timeout: { user: "{user}", seconds: 60, reason: "Kanalpunkte" }
+      - say: "{user} hat sich selbst für 60 Sekunden stummgeschaltet 😂"
+
+# ---------------------------------------------------------------------
+# Eigene Texte für eingebaute Antworten (Auszug – alle Schlüssel: src/core/messages.js)
+# ---------------------------------------------------------------------
+messages:
+  uptime: "{channel} ist seit {uptime} live. 🕒"
+  # shoutout: "Schaut bei {name} vorbei! twitch.tv/{target}"

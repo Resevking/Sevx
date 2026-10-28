@@ -51,3 +51,7 @@ Here are a few suggestions on what to do next if you're new to Netlify Visual Ed
 ## Support
 
 If you get stuck along the way, get help in our [support forums](https://answers.netlify.com/).
+
+## Stream-Bot
+
+Im Ordner [`stream-bot/`](stream-bot/README.md) liegt ein eigenständiger Twitch-Bot (Chat-Befehle, Moderation, Timer, Events, OBS-Steuerung). Er ist unabhängig von der Website und wird nicht mit deployt – Einrichtung siehe [stream-bot/README.md](stream-bot/README.md).

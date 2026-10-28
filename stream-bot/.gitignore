@@ -1,0 +1,5 @@
+node_modules/
+# Persönliche Einstellungen und Zugangsdaten nie hochladen!
+.env
+config.yml
+data/
