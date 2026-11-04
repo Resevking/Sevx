@@ -66,7 +66,9 @@ Im hPanel unter **Sicherheit → SSL** sollte für r2sev.com ein (kostenloses) Z
 
 - **Links:** in `public_html/index.html`, nach `twitch.tv/r2sev` bzw. `youtube.com/@r2sev` suchen. Für einen weiteren Link einen ganzen `<li>…</li>`-Block kopieren und anpassen.
 - **Direkter Link zum Formular:** https://r2sev.com/#kontakt
-- **Impressum/Datenschutz:** in `public_html/impressum/index.html` und `public_html/datenschutz/index.html`. Wenn du später etwas Neues einbaust (z. B. eingebettete Videos, Statistik-Tools oder einen Shop), muss die Datenschutzerklärung angepasst werden.
+- **Impressum/Datenschutz:** in `public_html/impressum/index.html` und `public_html/datenschutz/index.html`. Beide nennen nur das Pseudonym «r2sev», «Schweiz» und `kontakt@r2sev.com`. Das passt, solange die Seite privat ist und nichts verkauft.
+  - Verkaufst du später über die Website etwas (z. B. Merch, bezahlte Leistungen), braucht das Impressum Name und Postadresse (Art. 3 Abs. 1 lit. s UWG). Eine Alternative dazu ist eine Firma oder eine Geschäftsadresse.
+  - Baust du etwas Neues ein (z. B. eingebettete Videos, Statistik-Tools), muss die Datenschutzerklärung angepasst werden.
 
 ## Lokal ansehen
 
