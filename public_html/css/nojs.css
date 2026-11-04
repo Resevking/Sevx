@@ -1,0 +1,12 @@
+/* Nur aktiv, wenn JavaScript ausgeschaltet ist: Kontaktformular immer offen zeigen. */
+.contact__panel {
+    grid-template-rows: 1fr !important;
+}
+
+.contact__toggle {
+    cursor: default;
+}
+
+.contact .card__action {
+    display: none;
+}

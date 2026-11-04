@@ -402,7 +402,8 @@ a.card:active {
     transition: grid-template-rows 0.34s var(--ease-out);
 }
 
-.js .contact:not([data-open]) .contact__panel {
+/* Ohne JavaScript bleibt das Formular offen (siehe nojs.css). */
+.contact:not([data-open]) .contact__panel {
     grid-template-rows: 0fr;
 }
 
@@ -562,6 +563,18 @@ a.card:active {
     text-align: center;
 }
 
+.form__note a {
+    color: var(--muted);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+@media (hover: hover) {
+    .form__note a:hover {
+        color: var(--accent);
+    }
+}
+
 /* ---------- Erfolg ---------- */
 
 .success {
@@ -636,8 +649,8 @@ a.card:active {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 100vh;
-    min-height: 100dvh;
+    min-height: calc(100vh - 64px);
+    min-height: calc(100dvh - 64px);
     padding-top: 48px;
     text-align: center;
 }
@@ -686,6 +699,166 @@ a.card:active {
     .button-link:hover {
         background: var(--accent-hover);
     }
+}
+
+/* ---------- Fusszeile ---------- */
+
+.site-footer {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    padding: 0 16px max(32px, env(safe-area-inset-bottom));
+    color: var(--subtle);
+    font-size: 13px;
+}
+
+.site-footer a {
+    padding: 4px 2px;
+    color: var(--subtle);
+    text-decoration: none;
+}
+
+.site-footer a[aria-current='page'] {
+    color: var(--muted);
+}
+
+@media (hover: hover) {
+    .site-footer a:hover {
+        color: var(--text);
+    }
+}
+
+/* ---------- Rechtliche Seiten (Impressum, Datenschutz) ---------- */
+
+.legal {
+    max-width: 680px;
+    padding-top: clamp(32px, 7vh, 72px);
+}
+
+.legal__back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: -8px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    color: var(--muted);
+    font-size: 14.5px;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.legal__back svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+@media (hover: hover) {
+    .legal__back:hover {
+        background: var(--accent-soft);
+        color: var(--accent);
+    }
+}
+
+.legal__title {
+    margin-top: 20px;
+    font-family: var(--font-display);
+    font-size: clamp(30px, 8vw, 40px);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+}
+
+.legal__meta {
+    margin-top: 8px;
+    color: var(--subtle);
+    font-size: 14px;
+}
+
+.legal__card {
+    margin-top: 28px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+}
+
+.legal__card p + p {
+    margin-top: 4px;
+}
+
+.legal__card strong {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.prose {
+    margin-top: 12px;
+    color: #d6cfc9;
+    font-size: 15.5px;
+    line-height: 1.65;
+}
+
+.prose h2 {
+    margin: 36px 0 10px;
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: 21px;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.prose h3 {
+    margin: 22px 0 6px;
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.prose p {
+    margin: 0 0 12px;
+}
+
+.prose ul {
+    margin: 0 0 12px;
+    padding-left: 20px;
+}
+
+.prose li {
+    margin-bottom: 4px;
+}
+
+.prose li::marker {
+    color: var(--accent);
+}
+
+.prose a,
+.legal__card a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-color: rgba(255, 115, 0, 0.4);
+    text-underline-offset: 3px;
+    overflow-wrap: anywhere;
+}
+
+@media (hover: hover) {
+    .prose a:hover,
+    .legal__card a:hover {
+        text-decoration-color: currentColor;
+    }
+}
+
+.legal + .site-footer {
+    padding-top: 8px;
 }
 
 /* ---------- Einblend-Animation ---------- */

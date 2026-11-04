@@ -1,3 +1,8 @@
+# Zugangsdaten fürs Kontaktformular – nur auf dem Server, nie ins Repository
+public_html/private/config.php
+public_html/private/storage/*
+!public_html/private/storage/.gitkeep
+
 # System
 .DS_Store
 Thumbs.db
@@ -5,6 +10,3 @@ Thumbs.db
 # Editor
 .idea
 *.code-workspace
-
-# Netlify CLI
-.netlify

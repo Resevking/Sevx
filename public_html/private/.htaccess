@@ -1,0 +1,8 @@
+# Dieser Ordner ist nur für PHP gedacht. Aus dem Web ist nichts davon abrufbar.
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>

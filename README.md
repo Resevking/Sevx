@@ -1,56 +1,77 @@
 # r2sev – Link-in-Bio-Seite
 
-Einseitige Website für **r2sev** (Twitch Streamer & YouTuber) mit Links zu Twitch und YouTube und einem Kontaktformular.
+Einseitige Website für **r2sev** (Twitch Streamer & YouTuber) mit Links zu Twitch und YouTube, einem Kontaktformular sowie Impressum und Datenschutzerklärung. Gehostet wird sie bei **Hostinger** (Webhosting).
 
-- Reines HTML/CSS/JS, kein Build-Schritt, keine Abhängigkeiten
-- Schriften (Outfit, Inter) liegen lokal im Projekt, es gibt keine Anfragen an Google oder andere Drittanbieter
-- Kontaktformular über **Netlify Forms**: Jede Nachricht kommt per E-Mail bei dir an. Deine E-Mail-Adresse steht nur in den Netlify-Einstellungen, nirgends im Code und nirgends auf der Seite.
+- Reines HTML/CSS/JS plus ein kleines PHP-Skript fürs Kontaktformular, kein Build-Schritt
+- Keine Cookies, kein Tracking, keine externen Dienste: Schriften (Outfit, Inter) liegen lokal auf dem Server
+- Das Formular verschickt Nachrichten per SMTP über das Hostinger-Postfach `kontakt@r2sev.com` an deine private Adresse. Diese steht nur in `private/config.php` auf dem Server, nirgends im Code und nirgends auf der Seite.
 
 ## Aufbau
 
 ```
-site/
-├── index.html            Startseite (Profil, Links, Kontaktformular)
-├── danke/index.html      Danke-Seite (nur nötig, wenn JavaScript im Browser aus ist)
-├── 404.html              Seite für nicht gefundene Adressen
-├── css/style.css         Gestaltung (Farben ganz oben unter :root)
-├── js/main.js            Formular auf-/zuklappen, prüfen und senden
-├── fonts/                Schriftdateien + Lizenz
-├── favicon.svg           Icon im Browser-Tab
-├── apple-touch-icon.png  Icon auf dem Handy-Homescreen
-└── og.png                Vorschaubild, wenn der Link geteilt wird (WhatsApp, Discord, …)
-netlify.toml              Netlify-Einstellungen (veröffentlicht den Ordner site/)
+public_html/                  ← Inhalt kommt bei Hostinger in den Ordner public_html
+├── index.html                Startseite (Profil, Links, Kontaktformular)
+├── kontakt.php               Nimmt das Formular entgegen und verschickt die E-Mail
+├── impressum/index.html      Impressum
+├── datenschutz/index.html    Datenschutzerklärung
+├── danke/index.html          Danke-Seite (wenn JavaScript im Browser aus ist)
+├── 404.html                  Seite für nicht gefundene Adressen
+├── .htaccess                 HTTPS, Sicherheits-Header, Zugriffssperren
+├── css/, js/, fonts/         Gestaltung, Formular-Logik, Schriften
+├── favicon.svg, apple-touch-icon.png, og.png
+└── private/                  Aus dem Web gesperrt, nur für PHP
+    ├── config.example.php    Vorlage für die Formular-Einstellungen
+    ├── config.php            ← legst du auf dem Server an (nicht im Repository!)
+    ├── lib/PHPMailer/        PHPMailer 6.12.0 (LGPL-2.1) für den sicheren Mailversand
+    └── storage/              Temporäre Spam-Schutz-Daten (wird automatisch befüllt)
 ```
 
-## Links ändern
+## Auf Hostinger veröffentlichen
 
-Die Links stehen in `site/index.html`. Suche nach `twitch.tv/r2sev` bzw. `youtube.com/@r2sev`.
-Für einen weiteren Link (z. B. TikTok oder Instagram) kopierst du einfach einen ganzen `<li>…</li>`-Block und passt Adresse, Titel und Icon an.
+### 1. E-Mail-Postfach anlegen
 
-Ein direkter Link zum Kontaktformular: **https://r2sev.com/#kontakt** (das Formular öffnet sich dann automatisch).
+Im hPanel unter **E-Mails** für deine Domain das Postfach **kontakt@r2sev.com** anlegen und das Passwort notieren.
+Damit Mails an diese Adresse (sie steht im Impressum) auch bei dir ankommen, richtest du dort am besten noch eine **Weiterleitung** an deine private Adresse ein.
 
-## Kontaktformular einrichten (einmalig in Netlify)
+### 2. Dateien hochladen
 
-1. **Formular-Erkennung einschalten:**
-   Netlify → deine Seite → **Forms** → **Enable form detection**.
-   Danach einmal neu veröffentlichen (Deploys → **Trigger deploy** → **Deploy site**). Netlify findet dann das Formular `kontakt`.
-2. **E-Mail-Benachrichtigung einrichten:**
-   **Site configuration** → **Notifications** → **Emails and webhooks** → **Form submission notifications** → **Add notification** → **Email notification**.
-   Gib dort deine E-Mail-Adresse ein und wähle als Formular `kontakt`.
-3. Fertig! Probier das Formular einmal selbst aus. Alle Nachrichten siehst du zusätzlich unter **Forms** im Netlify-Dashboard.
+1. hPanel → deine Website → **Dateimanager** → Ordner `public_html` öffnen.
+2. Vorhandene Standarddateien von Hostinger löschen (z. B. `default.php`).
+3. Den **Inhalt** des Ordners `public_html` aus diesem Projekt hochladen. Am einfachsten lädst du alles als ZIP hoch und entpackst es dort.
+   Wichtig: Die Datei `.htaccess` muss mit hochgeladen werden.
 
-Hinweise:
+### 3. Kontaktformular einrichten
 
-- Der Betreff der E-Mail lautet „Neue Nachricht von ‹Name› über r2sev.com“.
-- Spam wird über ein verstecktes Feld (Honeypot) und den Spamfilter von Netlify abgefangen. Verdächtige Nachrichten landen unter **Forms** → **Spam submissions**.
-- Im kostenlosen Netlify-Plan sind 100 Formular-Nachrichten pro Monat inklusive.
-- Lokal (ohne Netlify) wird nichts verschickt. Das Formular funktioniert nur auf der veröffentlichten Seite.
+1. Im Dateimanager den Ordner `public_html/private` öffnen.
+2. `config.example.php` kopieren und die Kopie **`config.php`** nennen.
+3. `config.php` bearbeiten:
+   - `to_email`: deine private Adresse, an die die Nachrichten gehen sollen
+   - `password`: das Passwort des Postfachs `kontakt@r2sev.com`
+4. Speichern und auf der Website eine Testnachricht schicken.
+
+Die Server-Daten für Hostinger sind schon eingetragen (`smtp.hostinger.com`, Port 465, SSL). Falls der Versand nicht klappt, findest du die genauen Werte im hPanel beim Postfach unter den Konfigurations- bzw. Verbindungsdetails.
+
+### 4. HTTPS prüfen
+
+Im hPanel unter **Sicherheit → SSL** sollte für r2sev.com ein (kostenloses) Zertifikat aktiv sein. Die `.htaccess` leitet alle Besucher automatisch auf `https://r2sev.com` um.
+
+## Sicherheit im Überblick
+
+- **Spam-Schutz:** verstecktes Honeypot-Feld und höchstens 5 Nachrichten pro Stunde und Absender. Dafür wird nur ein Hash der IP-Adresse gespeichert, der nach 1 Stunde gelöscht wird.
+- **Eingaben:** Alle Felder werden auf dem Server geprüft, Längen sind begrenzt, Zeilenumbrüche in Name und E-Mail werden entfernt (Schutz vor E-Mail-Header-Injection). Es werden nur Anfragen von der eigenen Website angenommen.
+- **Webserver:** HTTPS erzwungen, HSTS, Content-Security-Policy (nur eigene Dateien erlaubt), Schutz vor Einbettung in fremde Seiten (Clickjacking), keine Verzeichnis-Auflistung, der Ordner `private/` und versteckte Dateien sind gesperrt.
+- **Zugangsdaten:** `config.php` steht in `.gitignore` und landet nie im Repository.
+
+## Inhalte ändern
+
+- **Links:** in `public_html/index.html`, nach `twitch.tv/r2sev` bzw. `youtube.com/@r2sev` suchen. Für einen weiteren Link einen ganzen `<li>…</li>`-Block kopieren und anpassen.
+- **Direkter Link zum Formular:** https://r2sev.com/#kontakt
+- **Impressum/Datenschutz:** in `public_html/impressum/index.html` und `public_html/datenschutz/index.html`. Wenn du später etwas Neues einbaust (z. B. eingebettete Videos, Statistik-Tools oder einen Shop), muss die Datenschutzerklärung angepasst werden.
 
 ## Lokal ansehen
 
 ```sh
-cd site
-python3 -m http.server 8000
+php -S localhost:8000 -t public_html
 ```
 
-Dann im Browser http://localhost:8000 öffnen.
+Dann http://localhost:8000 öffnen. Das Formular verschickt lokal nur etwas, wenn eine `private/config.php` vorhanden ist.

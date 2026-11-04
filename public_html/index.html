@@ -1,12 +1,8 @@
 <!doctype html>
-<html lang="de-CH" class="no-js">
+<html lang="de-CH">
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-        <script>
-            document.documentElement.classList.replace('no-js', 'js');
-        </script>
-
         <title>r2sev – Twitch Streamer &amp; YouTuber</title>
         <meta name="description" content="r2sev – Twitch Streamer &amp; YouTuber. Alle Links an einem Ort: Twitch, YouTube und Kontakt." />
         <meta name="theme-color" content="#080606" />
@@ -28,6 +24,7 @@
         <link rel="preload" href="/fonts/outfit-latin-wght.woff2" as="font" type="font/woff2" crossorigin />
         <link rel="preload" href="/fonts/inter-latin-wght.woff2" as="font" type="font/woff2" crossorigin />
         <link rel="stylesheet" href="/css/style.css" />
+        <noscript><link rel="stylesheet" href="/css/nojs.css" /></noscript>
         <script src="/js/main.js" defer></script>
     </head>
     <body>
@@ -135,20 +132,9 @@
                         <div class="contact__panel" id="kontakt-panel" data-contact-panel>
                             <div class="contact__panel-inner">
                                 <div class="contact__body">
-                                    <form
-                                        class="form"
-                                        name="kontakt"
-                                        method="POST"
-                                        action="/danke/"
-                                        data-netlify="true"
-                                        netlify-honeypot="bot-field"
-                                        data-contact-form
-                                    >
-                                        <input type="hidden" name="form-name" value="kontakt" />
-                                        <input type="hidden" name="subject" value="Neue Nachricht über r2sev.com" data-remove-prefix />
-
+                                    <form class="form" name="kontakt" method="POST" action="/kontakt.php" data-contact-form>
                                         <div class="hp" aria-hidden="true">
-                                            <label>Dieses Feld bitte leer lassen: <input type="text" name="bot-field" tabindex="-1" autocomplete="off" /></label>
+                                            <label>Website (bitte leer lassen): <input type="text" name="website" tabindex="-1" autocomplete="off" /></label>
                                         </div>
 
                                         <div class="field">
@@ -196,7 +182,10 @@
                                         </button>
 
                                         <p class="form__status" role="alert" data-form-status hidden></p>
-                                        <p class="form__note">Deine Angaben werden nur verwendet, um dir zu antworten.</p>
+                                        <p class="form__note">
+                                            Deine Angaben werden nur verwendet, um dir zu antworten. Mehr dazu in der
+                                            <a href="/datenschutz/">Datenschutzerklärung</a>.
+                                        </p>
                                     </form>
 
                                     <div class="success" tabindex="-1" data-contact-success hidden>
@@ -214,5 +203,11 @@
                 </ul>
             </div>
         </main>
+
+        <footer class="site-footer">
+            <a href="/impressum/">Impressum</a>
+            <span aria-hidden="true">·</span>
+            <a href="/datenschutz/">Datenschutz</a>
+        </footer>
     </body>
 </html>

@@ -1,7 +1,7 @@
 /*
- * Kontaktformular: auf- und zuklappen, prüfen und an Netlify Forms senden.
- * Netlify leitet jede Nachricht per E-Mail weiter. Die Empfänger-Adresse wird
- * nur in den Netlify-Einstellungen hinterlegt und steht nirgends im Code.
+ * Kontaktformular: auf- und zuklappen, prüfen und an /kontakt.php senden.
+ * Das PHP-Skript verschickt die Nachricht per E-Mail. Die Empfänger-Adresse
+ * steht nur auf dem Server (private/config.php) und nirgends im Code der Seite.
  */
 (function () {
     'use strict';
@@ -17,7 +17,6 @@
     var status = form.querySelector('[data-form-status]');
     var submitButton = form.querySelector('[data-submit]');
     var submitLabel = form.querySelector('[data-submit-label]');
-    var subjectInput = form.querySelector('input[name="subject"]');
 
     var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -160,28 +159,69 @@
         setStatus('');
         if (!validate()) return;
 
-        var name = form.elements.name.value.trim();
-        subjectInput.value = 'Neue Nachricht von ' + name + ' über r2sev.com';
-
-        var body = new URLSearchParams(new FormData(form)).toString();
-
         setSending(true);
 
-        fetch('/', {
+        // Nach 40 Sekunden ohne Antwort abbrechen, damit niemand endlos wartet.
+        var controller = 'AbortController' in window ? new AbortController() : null;
+        var timeout = controller
+            ? window.setTimeout(function () {
+                  controller.abort();
+              }, 40000)
+            : null;
+
+        fetch(form.action, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: body
+            headers: { Accept: 'application/json' },
+            credentials: 'same-origin',
+            body: new FormData(form),
+            signal: controller ? controller.signal : undefined
         })
             .then(function (response) {
-                if (!response.ok) throw new Error('HTTP ' + response.status);
-                showSuccess();
+                return response
+                    .json()
+                    .catch(function () {
+                        return {};
+                    })
+                    .then(function (data) {
+                        if (response.ok && data.ok) {
+                            showSuccess();
+                            return;
+                        }
+                        setSending(false);
+                        if (data.error === 'validation' && data.fields) {
+                            showServerErrors(data.fields);
+                        } else if (data.error === 'rate_limit') {
+                            failWith('Du hast gerade schon mehrere Nachrichten geschickt. Bitte versuch es in einer Stunde nochmal.');
+                        } else {
+                            failWith('Das hat leider nicht geklappt. Bitte versuch es später nochmal.');
+                        }
+                    });
             })
             .catch(function () {
                 setSending(false);
-                setStatus('Das hat leider nicht geklappt. Bitte prüf deine Verbindung und versuch es nochmal.');
-                submitButton.focus();
+                failWith('Keine Verbindung. Bitte prüf dein Internet und versuch es nochmal.');
+            })
+            .then(function () {
+                window.clearTimeout(timeout);
             });
     });
+
+    function failWith(text) {
+        setStatus(text);
+        submitButton.focus();
+    }
+
+    // Fehler, die erst der Server findet (z. B. zu lange Eingaben), direkt am Feld anzeigen.
+    function showServerErrors(fieldErrors) {
+        var firstInvalid = null;
+        fields.forEach(function (field) {
+            var text = fieldErrors[field.name] || '';
+            showError(field, text);
+            if (text && !firstInvalid) firstInvalid = field;
+        });
+        if (firstInvalid) firstInvalid.focus();
+        else failWith('Bitte prüf deine Angaben.');
+    }
 
     function showSuccess() {
         setSending(false);
