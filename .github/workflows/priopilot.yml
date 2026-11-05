@@ -1,0 +1,43 @@
+name: PrioPilot (Windows-App)
+
+on:
+  push:
+    paths:
+      - 'prio-pilot/**'
+      - '.github/workflows/priopilot.yml'
+  pull_request:
+    paths:
+      - 'prio-pilot/**'
+      - '.github/workflows/priopilot.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bauen-und-testen:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bauen (mit dem in Windows eingebauten Compiler)
+        working-directory: prio-pilot
+        shell: cmd
+        run: build.bat /nopause
+
+      - name: Selbsttest (pausieren, bremsen, Vorrang, Zurücksetzen, Oberfläche)
+        working-directory: prio-pilot
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath .\PrioPilot.exe -ArgumentList '/selbsttest' -Wait -PassThru
+          Get-Content .\selbsttest.log
+          exit $p.ExitCode
+
+      - name: Fertige App zum Herunterladen bereitstellen
+        uses: actions/upload-artifact@v4
+        with:
+          name: PrioPilot
+          path: |
+            prio-pilot/PrioPilot.exe
+            prio-pilot/README.md
