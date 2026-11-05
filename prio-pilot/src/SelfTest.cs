@@ -90,6 +90,15 @@ namespace PrioPilot
                 ping = StartHidden("ping.exe", "-n 300 127.0.0.1");
                 burner = StartHidden("cmd.exe", "/d /c for /l %i in (0,0,1) do @rem");
                 Thread.Sleep(600);
+                // Ausgangspriorität merken: Windows vererbt "niedriger als normal" an Kindprozesse,
+                // "zurücksetzen" heißt also: zurück auf genau diesen Wert.
+                Line("INFO  Ausgangspriorität: eigener Prozess " + PriorityName(Priority(Process.GetCurrentProcess())) +
+                     ", Test-Prozesse " + PriorityName(Priority(ping)) + " / " + PriorityName(Priority(burner)));
+                // Auf "normal" stellen, damit "bremsen" wirklich eine Änderung nachweist.
+                ping.PriorityClass = ProcessPriorityClass.Normal;
+                burner.PriorityClass = ProcessPriorityClass.Normal;
+                uint pingOrig = Priority(ping), burnerOrig = Priority(burner);
+                Check(pingOrig == Native.NORMAL_PRIORITY_CLASS && burnerOrig == Native.NORMAL_PRIORITY_CLASS, "Test-Prozesse auf normal gestellt");
                 e.Tick();
                 Check(e.Groups.ContainsKey("ping.exe") && e.Groups.ContainsKey("cmd.exe"), "Test-Prozesse gefunden");
                 Check(e.Groups.ContainsKey("conhost.exe") ? e.Groups["conhost.exe"].Protected : true, "Windows-Prozesse sind geschützt");
@@ -119,13 +128,13 @@ namespace PrioPilot
                 e.PauseNow(new string[] { "ping.exe" });
                 Check(IsSuspended(ping), "'Jetzt pausieren' hält die App an (auch wenn sie die aktive war)");
                 e.ResumeNow(new string[] { "ping.exe" });
-                Check(!IsSuspended(ping) && Priority(ping) == Native.NORMAL_PRIORITY_CLASS, "'Fortsetzen' stellt alles wieder her");
+                Check(!IsSuspended(ping) && Priority(ping) == pingOrig, "'Fortsetzen' stellt alles wieder her");
 
                 // --- Vorrang ---
                 e.SetRule(new string[] { "ping.exe" }, Rule.Vorrang);
                 Check(Priority(ping) == Native.HIGH_PRIORITY_CLASS, "Regel 'Vorrang' setzt hohe Priorität");
                 e.SetRule(new string[] { "ping.exe" }, Rule.Ignorieren);
-                Check(Priority(ping) == Native.NORMAL_PRIORITY_CLASS, "Regel 'nie anfassen' setzt zurück");
+                Check(Priority(ping) == pingOrig, "Regel 'nie anfassen' setzt zurück");
 
                 // --- Fresser automatisch erkennen ---
                 AppGroup cmd = null;
@@ -153,8 +162,8 @@ namespace PrioPilot
                 e.Tick();
                 Check(IsSuspended(ping) && Priority(burner) == Native.BELOW_NORMAL_PRIORITY_CLASS, "Vor dem Beenden: pausiert und gebremst");
                 e.Shutdown();
-                Check(!IsSuspended(ping) && Priority(ping) == Native.NORMAL_PRIORITY_CLASS && Priority(burner) == Native.NORMAL_PRIORITY_CLASS,
-                    "Beenden setzt alle Apps zurück");
+                Check(!IsSuspended(ping) && Priority(ping) == pingOrig && Priority(burner) == burnerOrig,
+                    "Beenden setzt alle Apps zurück (" + PriorityName(Priority(ping)) + " / " + PriorityName(Priority(burner)) + ")");
 
                 // --- Absturz-Schutz: pausierte App wird beim nächsten Start fortgesetzt ---
                 Engine crashed = new Engine(s2);
@@ -237,6 +246,20 @@ namespace PrioPilot
             if (h == IntPtr.Zero) return 0;
             try { return Native.GetPriorityClass(h); }
             finally { Native.CloseHandle(h); }
+        }
+
+        static string PriorityName(uint cls)
+        {
+            switch (cls)
+            {
+                case Native.IDLE_PRIORITY_CLASS: return "niedrig";
+                case Native.BELOW_NORMAL_PRIORITY_CLASS: return "niedriger als normal";
+                case Native.NORMAL_PRIORITY_CLASS: return "normal";
+                case Native.ABOVE_NORMAL_PRIORITY_CLASS: return "höher als normal";
+                case Native.HIGH_PRIORITY_CLASS: return "hoch";
+                case Native.REALTIME_PRIORITY_CLASS: return "Echtzeit";
+                default: return "unbekannt (" + cls + ")";
+            }
         }
 
         static bool IsSuspended(Process p)
