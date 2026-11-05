@@ -386,13 +386,17 @@ namespace PrioPilot
                     if (!items.TryGetValue(g.Key, out it))
                     {
                         it = new ListViewItem(new string[] { g.Name, "", "", "", "", "", "" });
-                        it.UseItemStyleForSubItems = true;
+                        it.Tag = g; // vor dem Einfügen setzen: die Liste sortiert schon beim Hinzufügen
+                        UpdateItem(it, g);
                         items.Add(g.Key, it);
                         list.Items.Add(it);
                         added = true;
                     }
-                    it.Tag = g;
-                    UpdateItem(it, g);
+                    else
+                    {
+                        it.Tag = g;
+                        UpdateItem(it, g);
+                    }
                 }
 
                 tmpKeys.Clear();
@@ -503,7 +507,8 @@ namespace PrioPilot
             public int Compare(object x, object y)
             {
                 ListViewItem ix = (ListViewItem)x, iy = (ListViewItem)y;
-                AppGroup a = (AppGroup)ix.Tag, b = (AppGroup)iy.Tag;
+                AppGroup a = ix.Tag as AppGroup, b = iy.Tag as AppGroup;
+                if (a == null || b == null) return (a == null ? 0 : 1) - (b == null ? 0 : 1);
                 int c;
                 switch (Column)
                 {

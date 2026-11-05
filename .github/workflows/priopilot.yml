@@ -29,9 +29,12 @@ jobs:
       - name: Selbsttest (pausieren, bremsen, Vorrang, Zurücksetzen, Oberfläche)
         working-directory: prio-pilot
         shell: pwsh
+        timeout-minutes: 4
         run: |
-          $p = Start-Process -FilePath .\PrioPilot.exe -ArgumentList '/selbsttest' -Wait -PassThru
-          Get-Content .\selbsttest.log
+          $p = Start-Process -FilePath .\PrioPilot.exe -ArgumentList '/selbsttest' -PassThru
+          $done = $p.WaitForExit(180000)
+          if (Test-Path .\selbsttest.log) { Get-Content .\selbsttest.log } else { Write-Host 'Kein selbsttest.log gefunden' }
+          if (-not $done) { Stop-Process -Id $p.Id -Force; Write-Host 'Selbsttest hat sich aufgehaengt'; exit 1 }
           exit $p.ExitCode
 
       - name: Fertige App zum Herunterladen bereitstellen

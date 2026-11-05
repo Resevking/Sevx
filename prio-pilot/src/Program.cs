@@ -31,7 +31,12 @@ namespace PrioPilot
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            if (selfTest) return SelfTest.Run();
+            if (selfTest)
+            {
+                // Fehler sollen den Test scheitern lassen, nicht ein Dialogfenster öffnen.
+                Application.SetUnhandledExceptionMode(UnhandledExceptionMode.ThrowException);
+                return SelfTest.Run();
+            }
 
             // Nur eine Instanz. Eine zweite holt nur das Fenster der ersten nach vorn.
             Mutex mutex = null;

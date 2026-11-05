@@ -17,6 +17,7 @@ namespace PrioPilot
     {
         static StreamWriter log;
         static int failures;
+        static Process ping, burner;
 
         public static int Run()
         {
@@ -24,6 +25,17 @@ namespace PrioPilot
             using (log = new StreamWriter(path, false, new UTF8Encoding(false)))
             {
                 log.AutoFlush = true;
+                // Sicherheitsnetz: Ein Test darf nie hängen bleiben.
+                Thread watchdog = new Thread(delegate()
+                {
+                    Thread.Sleep(120000);
+                    try { lock (log) log.WriteLine("FEHLER Zeitüberschreitung – Test hängt"); } catch (Exception) { }
+                    Kill(ping);
+                    Kill(burner);
+                    Environment.Exit(2);
+                });
+                watchdog.IsBackground = true;
+                watchdog.Start();
                 try
                 {
                     Body();
@@ -42,6 +54,7 @@ namespace PrioPilot
             int ownPid = Process.GetCurrentProcess().Id;
             string dir = Path.Combine(Path.GetTempPath(), "PrioPilotTest_" + ownPid);
             Settings.DirOverride = dir;
+            Line("START " + DateTime.Now.ToString("HH:mm:ss"));
             Line("Windows " + Environment.OSVersion.Version + ", " + Environment.ProcessorCount + " Kerne, " +
                  (Environment.Is64BitProcess ? "64" : "32") + " Bit, .NET " + Environment.Version);
 
@@ -57,7 +70,6 @@ namespace PrioPilot
             s2.CpuThreshold = 5;
             s2.PauseAfterSeconds = 0;
 
-            Process ping = null, burner = null;
             try
             {
                 Engine e = new Engine(s2);
@@ -253,7 +265,7 @@ namespace PrioPilot
 
         static void Line(string text)
         {
-            log.WriteLine(text);
+            lock (log) log.WriteLine(text);
         }
     }
 }
