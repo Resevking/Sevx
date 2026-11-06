@@ -156,8 +156,7 @@ svg {
 }
 
 .avatar {
-    display: grid;
-    place-items: center;
+    flex: none;
     width: 104px;
     height: 104px;
     border-radius: 50%;
@@ -167,26 +166,15 @@ svg {
         0 0 0 6px rgba(255, 115, 0, 0.04),
         0 0 48px rgba(255, 105, 0, 0.16),
         inset 0 0 24px rgba(255, 105, 0, 0.12);
+    overflow: hidden;
 }
 
-.hat {
-    width: 78px;
-    height: 78px;
-    overflow: visible;
-    filter: drop-shadow(0 0 5px rgba(255, 115, 0, 0.55));
-}
-
-.hat__brim,
-.hat__crown,
-.hat__top {
-    fill: #050302;
-    stroke: var(--accent);
-    stroke-width: 2.4;
-    stroke-linejoin: round;
-}
-
-.hat__band {
-    fill: var(--accent);
+.avatar__img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
 }
 
 .profile__name {
@@ -301,6 +289,17 @@ button.card__row {
 .tile--youtube svg {
     width: 26px;
     height: 26px;
+}
+
+.tile--tiktok {
+    color: #fff;
+    background: #121214;
+    border-color: rgba(255, 255, 255, 0.16);
+}
+
+.tile--tiktok svg {
+    width: 25px;
+    height: 25px;
 }
 
 .tile--mail {
@@ -660,11 +659,6 @@ a.card:active {
     height: 88px;
 }
 
-.simple .hat {
-    width: 66px;
-    height: 66px;
-}
-
 .simple__title {
     margin-top: 24px;
     font-family: var(--font-display);
@@ -880,6 +874,10 @@ a.card:active {
     .links__list > li:nth-child(3) {
         animation-delay: 0.2s;
     }
+
+    .links__list > li:nth-child(4) {
+        animation-delay: 0.26s;
+    }
 }
 
 @keyframes rise {
@@ -909,11 +907,6 @@ a.card:active {
     .avatar {
         width: 112px;
         height: 112px;
-    }
-
-    .hat {
-        width: 84px;
-        height: 84px;
     }
 
     .profile__name {

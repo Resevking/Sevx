@@ -80,7 +80,8 @@ function finish(bool $wantsJson, int $status, string $error = '', array $fields 
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="robots" content="noindex" />
         <title>Nachricht nicht gesendet – r2sev</title>
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="icon" href="/favicon.ico" sizes="32x32" />
+        <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
         <link rel="stylesheet" href="/css/style.css" />
     </head>
     <body>

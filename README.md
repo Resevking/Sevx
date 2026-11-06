@@ -1,6 +1,6 @@
 # r2sev – Link-in-Bio-Seite
 
-Einseitige Website für **r2sev** (Twitch Streamer & YouTuber) mit Links zu Twitch und YouTube, einem Kontaktformular sowie Impressum und Datenschutzerklärung. Gehostet wird sie bei **Hostinger** (Webhosting).
+Einseitige Website für **r2sev** (Twitch Streamer & YouTuber) mit Links zu Twitch, YouTube und TikTok, einem Kontaktformular sowie Impressum und Datenschutzerklärung. Gehostet wird sie bei **Hostinger** (Webhosting).
 
 - Reines HTML/CSS/JS plus ein kleines PHP-Skript fürs Kontaktformular, kein Build-Schritt
 - Keine Cookies, kein Tracking, keine externen Dienste: Schriften (Outfit, Inter) liegen lokal auf dem Server
@@ -18,7 +18,9 @@ public_html/                  ← Inhalt kommt bei Hostinger in den Ordner publi
 ├── 404.html                  Seite für nicht gefundene Adressen
 ├── .htaccess                 HTTPS, Sicherheits-Header, Zugriffssperren
 ├── css/, js/, fonts/         Gestaltung, Formular-Logik, Schriften
-├── favicon.svg, apple-touch-icon.png, og.png
+├── img/avatar.webp           Profilbild (Zylinder)
+├── favicon.ico, icon-192.png, apple-touch-icon.png   Icons für Browser-Tab und Handy
+├── og.png                    Vorschaubild beim Teilen des Links
 └── private/                  Aus dem Web gesperrt, nur für PHP
     ├── config.example.php    Vorlage für die Formular-Einstellungen
     ├── config.php            ← legst du auf dem Server an (nicht im Repository!)
@@ -64,7 +66,8 @@ Im hPanel unter **Sicherheit → SSL** sollte für r2sev.com ein (kostenloses) Z
 
 ## Inhalte ändern
 
-- **Links:** in `public_html/index.html`, nach `twitch.tv/r2sev` bzw. `youtube.com/@r2sev` suchen. Für einen weiteren Link einen ganzen `<li>…</li>`-Block kopieren und anpassen.
+- **Links:** in `public_html/index.html`, nach `twitch.tv/r2sev`, `youtube.com/@r2sev` bzw. `tiktok.com/@r2sev` suchen. Für einen weiteren Link einen ganzen `<li>…</li>`-Block kopieren und anpassen.
+- **Profilbild:** `public_html/img/avatar.webp` durch ein anderes quadratisches Bild ersetzen (gleicher Dateiname, ca. 400 × 400 px).
 - **Direkter Link zum Formular:** https://r2sev.com/#kontakt
 - **Impressum/Datenschutz:** in `public_html/impressum/index.html` und `public_html/datenschutz/index.html`. Beide nennen nur das Pseudonym «r2sev», «Schweiz» und `kontakt@r2sev.com`. Das passt, solange die Seite privat ist und nichts verkauft.
   - Verkaufst du später über die Website etwas (z. B. Merch, bezahlte Leistungen), braucht das Impressum Name und Postadresse (Art. 3 Abs. 1 lit. s UWG). Eine Alternative dazu ist eine Firma oder eine Geschäftsadresse.
