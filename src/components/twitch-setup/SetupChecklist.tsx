@@ -96,6 +96,7 @@ export default function SetupChecklist({ username, done, loaded, onToggle, onRes
                                 return (
                                     <li
                                         key={step.id}
+                                        data-step={step.id}
                                         className={`rounded-xl border bg-white transition dark:bg-zinc-900 ${
                                             isOpen ? 'border-violet-300 shadow-sm dark:border-violet-800' : 'border-zinc-200 dark:border-zinc-800'
                                         }`}

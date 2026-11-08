@@ -1,0 +1,72 @@
+{
+    "name": "twitch-setup-assistent",
+    "productName": "Twitch Setup-Assistent",
+    "version": "1.0.0",
+    "description": "Schritt für Schritt zum ersten Twitch-Stream: Checkliste, OBS-Rechner und Problemlöser.",
+    "author": "Sevx",
+    "license": "MIT",
+    "private": true,
+    "main": "main.js",
+    "scripts": {
+        "build:renderer": "node build.mjs && tailwindcss -c tailwind.config.js -i renderer/styles.css -o dist/app.css --minify",
+        "start": "npm run build:renderer && electron .",
+        "selftest": "npm run build:renderer && electron . --selftest",
+        "dist": "npm run build:renderer && electron-builder --win --publish never"
+    },
+    "devDependencies": {
+        "electron": "44.9.3",
+        "electron-builder": "26.18.0",
+        "esbuild": "0.28.2",
+        "react": "18.3.1",
+        "react-dom": "18.3.1",
+        "tailwindcss": "3.4.16"
+    },
+    "build": {
+        "appId": "ch.sevx.twitch-setup-assistent",
+        "productName": "Twitch Setup-Assistent",
+        "copyright": "Sevx",
+        "directories": {
+            "output": "release",
+            "buildResources": "build"
+        },
+        "files": [
+            "main.js",
+            "dist/**/*",
+            "package.json"
+        ],
+        "npmRebuild": false,
+        "win": {
+            "target": [
+                {
+                    "target": "nsis",
+                    "arch": [
+                        "x64"
+                    ]
+                },
+                {
+                    "target": "portable",
+                    "arch": [
+                        "x64"
+                    ]
+                }
+            ],
+            "icon": "build/icon.png"
+        },
+        "nsis": {
+            "oneClick": true,
+            "perMachine": false,
+            "runAfterFinish": true,
+            "createDesktopShortcut": "always",
+            "createStartMenuShortcut": true,
+            "shortcutName": "Twitch Setup-Assistent",
+            "installerLanguages": [
+                "de_DE"
+            ],
+            "language": "1031",
+            "artifactName": "Twitch-Setup-Assistent-Setup-${version}.${ext}"
+        },
+        "portable": {
+            "artifactName": "Twitch-Setup-Assistent-${version}-portable.${ext}"
+        }
+    }
+}

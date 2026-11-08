@@ -1,0 +1,61 @@
+name: Twitch Setup-Assistent (Windows-App)
+
+on:
+  push:
+    paths:
+      - 'twitch-setup-desktop/**'
+      - 'src/components/twitch-setup/**'
+      - '.github/workflows/twitch-setup-desktop.yml'
+  pull_request:
+    paths:
+      - 'twitch-setup-desktop/**'
+      - 'src/components/twitch-setup/**'
+      - '.github/workflows/twitch-setup-desktop.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bauen-und-testen:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: twitch-setup-desktop
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: twitch-setup-desktop/package-lock.json
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Windows-Installer bauen
+        run: npm run dist
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: Selbsttest der fertigen App
+        shell: pwsh
+        timeout-minutes: 3
+        run: |
+          $exe = Get-ChildItem -Path release\win-unpacked -Filter *.exe | Select-Object -First 1
+          $p = Start-Process -FilePath $exe.FullName -ArgumentList '--selftest' -WorkingDirectory (Get-Location) -PassThru
+          $done = $p.WaitForExit(120000)
+          if (Test-Path .\selftest.log) { Get-Content .\selftest.log } else { Write-Host 'Kein selftest.log gefunden' }
+          if (-not $done) { Stop-Process -Id $p.Id -Force; Write-Host 'Selbsttest hat sich aufgehaengt'; exit 1 }
+          exit $p.ExitCode
+
+      - name: Fertige App zum Herunterladen bereitstellen
+        uses: actions/upload-artifact@v4
+        with:
+          name: Twitch-Setup-Assistent-Windows
+          if-no-files-found: error
+          path: |
+            twitch-setup-desktop/release/*.exe
+            twitch-setup-desktop/README.md
