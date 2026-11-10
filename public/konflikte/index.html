@@ -1,0 +1,924 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Konflikte der Welt</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Interaktiver 3D-Globus mit den bewaffneten Konflikten der Welt, Stand November 2026.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  /* Layout: Globus füllt den Bildschirm; links ein schwebendes Lagebild-Panel (Desktop), unten ein Sheet (Handy). */
+  :root {
+    --space: #04060b;
+    --panel: rgba(9, 12, 19, 0.80);
+    --panel-solid: #0a0e16;
+    --raise: rgba(255, 255, 255, 0.05);
+    --raise-2: rgba(255, 255, 255, 0.09);
+    --line: rgba(200, 214, 236, 0.11);
+    --fg: #e8ecf3;
+    --muted: #97a2b5;
+    --faint: #5f6a7c;
+    --focus: #8cc8ff;
+    --war: #ff4a5a;
+    --civil: #ff9136;
+    --insurg: #f2c94c;
+    --crime: #b58cff;
+    --f-display: "Archivo", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+    --f-body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    --panel-w: 384px;
+    color-scheme: dark;
+  }
+  html, body { height: 100%; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0;
+    background: var(--space);
+    color: var(--fg);
+    font-family: var(--f-body);
+    font-size: 14px;
+    line-height: 1.5;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  #app { position: relative; height: 100%; }
+  #globe { position: absolute; inset: 0; }
+  #globe canvas { outline: none; }
+
+  /* ---------- Panel ---------- */
+  #panel {
+    position: absolute;
+    z-index: 5;
+    top: max(16px, env(safe-area-inset-top, 0px));
+    bottom: max(16px, env(safe-area-inset-bottom, 0px));
+    left: max(16px, env(safe-area-inset-left, 0px));
+    width: var(--panel-w);
+    display: flex;
+    flex-direction: column;
+    background: var(--panel);
+    backdrop-filter: blur(14px) saturate(1.2);
+    -webkit-backdrop-filter: blur(14px) saturate(1.2);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .ph { padding: 18px 20px 14px; border-bottom: 1px solid var(--line); display: grid; gap: 10px; }
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .live { width: 7px; height: 7px; border-radius: 50%; background: var(--war); box-shadow: 0 0 0 0 rgba(255,74,90,.6); animation: live 2s infinite; }
+  @keyframes live { 0% { box-shadow: 0 0 0 0 rgba(255,74,90,.55); } 70% { box-shadow: 0 0 0 8px rgba(255,74,90,0); } 100% { box-shadow: 0 0 0 0 rgba(255,74,90,0); } }
+  h1 {
+    margin: 0;
+    font-family: var(--f-display);
+    font-stretch: 78%;
+    font-weight: 800;
+    font-size: 34px;
+    line-height: 1;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    text-wrap: balance;
+  }
+  .stats { display: flex; gap: 18px; font-variant-numeric: tabular-nums; }
+  .stat b { display: block; font-family: var(--f-display); font-stretch: 85%; font-weight: 700; font-size: 22px; line-height: 1.1; }
+  .stat span { font-size: 11px; color: var(--muted); letter-spacing: 0.02em; }
+  .filters { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    appearance: none; border: 1px solid var(--line); background: var(--raise);
+    color: var(--fg); font: 500 12px/1 var(--f-body);
+    padding: 7px 10px 7px 8px; border-radius: 999px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: background .15s, opacity .15s, border-color .15s;
+  }
+  .chip:hover { background: var(--raise-2); }
+  .chip[aria-pressed="false"] { opacity: .45; }
+  .chip[aria-pressed="false"] .dot { background: transparent !important; box-shadow: inset 0 0 0 1.5px currentColor; }
+  .chip .n { font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+
+  .scroll { flex: 1; overflow-y: auto; overscroll-behavior: contain; min-height: 0; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.15) transparent; }
+
+  /* ---------- Liste ---------- */
+  .group-h {
+    position: sticky; top: 0; z-index: 1;
+    padding: 10px 20px 6px;
+    background: linear-gradient(var(--panel-solid) 70%, rgba(10,14,22,0));
+    font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--faint);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .bars { display: inline-flex; gap: 2px; align-items: flex-end; }
+  .bars i { display: block; width: 3px; border-radius: 1px; background: currentColor; opacity: .25; }
+  .bars i:nth-child(1) { height: 5px; } .bars i:nth-child(2) { height: 8px; } .bars i:nth-child(3) { height: 11px; }
+  .bars[data-l="1"] i:nth-child(-n+1), .bars[data-l="2"] i:nth-child(-n+2), .bars[data-l="3"] i:nth-child(-n+3) { opacity: 1; }
+  .item {
+    appearance: none; width: 100%; text-align: left; background: none; border: 0; color: inherit; cursor: pointer;
+    display: grid; grid-template-columns: 22px 1fr auto; gap: 2px 10px; align-items: center;
+    padding: 9px 20px; font: inherit;
+  }
+  .item:hover { background: var(--raise); }
+  .item .mk { grid-row: span 2; justify-self: center; position: relative; width: 14px; height: 14px; }
+  .item .mk::before { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--c); }
+  .item .mk::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 1.5px solid var(--c); opacity: .5; }
+  .item .nm { font-weight: 600; font-size: 14px; line-height: 1.25; min-width: 0; }
+  .item .st { grid-column: 2; font-size: 12px; color: var(--muted); min-width: 0; }
+  .item .yr { grid-row: 1 / span 2; grid-column: 3; font-family: var(--f-mono); font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }
+  .empty { padding: 24px 20px; color: var(--muted); }
+
+  /* ---------- Detail ---------- */
+  .detail-in { padding: 14px 20px 22px; display: grid; gap: 14px; }
+  .back {
+    appearance: none; background: none; border: 0; color: var(--muted); font: 500 13px var(--f-body);
+    padding: 4px 0; cursor: pointer; justify-self: start; display: inline-flex; gap: 6px; align-items: center;
+  }
+  .back:hover { color: var(--fg); }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    font: 500 11.5px/1 var(--f-body); padding: 6px 9px; border-radius: 6px;
+    background: var(--raise); border: 1px solid var(--line); color: var(--fg);
+  }
+  .tag.type { color: var(--c); border-color: color-mix(in srgb, var(--c) 45%, transparent); background: color-mix(in srgb, var(--c) 12%, transparent); }
+  .tag .bars { color: var(--c); }
+  .d-title {
+    margin: 0; font-family: var(--f-display); font-stretch: 80%; font-weight: 800; font-size: 30px; line-height: 1.02;
+    letter-spacing: -0.005em; text-wrap: balance;
+  }
+  .coords { font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 14px; }
+  .lead { margin: 0; font-size: 15px; line-height: 1.55; color: var(--fg); }
+  .sec { display: grid; gap: 6px; }
+  .sec h3 {
+    margin: 0; font-family: var(--f-mono); font-weight: 500; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--faint);
+  }
+  .sec p { margin: 0; color: #cdd4df; line-height: 1.55; }
+  .news { border-left: 2px solid var(--c); padding: 2px 0 2px 12px; }
+  .parties { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+  .parties li { display: flex; gap: 8px; color: #cdd4df; }
+  .parties li::before { content: ""; flex: none; width: 5px; height: 5px; margin-top: 8px; border-radius: 1px; background: var(--faint); }
+  .rel { display: flex; flex-wrap: wrap; gap: 6px; }
+  .rel button {
+    appearance: none; cursor: pointer; font: 500 12.5px var(--f-body); color: var(--fg);
+    background: var(--raise); border: 1px solid var(--line); border-radius: 999px; padding: 6px 11px 6px 9px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .rel button:hover { background: var(--raise-2); }
+
+  .credits { margin: 0; padding: 14px 20px 18px; border-top: 1px solid var(--line); font-size: 11px; line-height: 1.5; color: var(--faint); }
+  .detail-in + .credits { margin-top: 4px; }
+
+  /* ---------- Overlays rechts ---------- */
+  .hud {
+    position: absolute; z-index: 4;
+    right: max(16px, env(safe-area-inset-right, 0px));
+    bottom: max(16px, env(safe-area-inset-bottom, 0px));
+    display: grid; gap: 10px; justify-items: end;
+  }
+  .legend, .seg {
+    background: var(--panel); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--line); border-radius: 10px;
+  }
+  .legend { padding: 10px 12px; display: grid; gap: 6px; font-size: 12px; color: var(--muted); }
+  .legend .row { display: flex; align-items: center; gap: 14px; }
+  .legend .lv { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .ring { border-radius: 50%; border: 1.5px solid var(--fg); opacity: .8; }
+  .legend .t { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
+  .seg { display: inline-flex; padding: 3px; gap: 2px; }
+  .seg button {
+    appearance: none; border: 0; background: none; color: var(--muted); cursor: pointer;
+    font: 500 12px var(--f-body); padding: 6px 10px; border-radius: 7px;
+  }
+  .seg button[aria-pressed="true"] { background: var(--raise-2); color: var(--fg); }
+  .sheet-handle { display: none; }
+
+  button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .item:focus-visible { outline-offset: -2px; }
+
+  /* globe.gl Tooltip */
+  .float-tooltip-kap {
+    background: rgba(8, 11, 18, 0.92) !important;
+    border: 1px solid var(--line);
+    border-radius: 8px !important;
+    padding: 8px 10px !important;
+    font: 13px/1.4 var(--f-body) !important;
+    color: var(--fg) !important;
+    max-width: 260px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.4);
+  }
+  .tt-h { font-weight: 600; }
+  .tt-s { color: var(--muted); font-size: 12px; }
+  .tt-r { display: flex; align-items: center; gap: 6px; font-size: 12px; margin-top: 3px; }
+
+  #loading {
+    position: absolute; inset: 0; display: grid; place-items: center; z-index: 3; pointer-events: none;
+    font-family: var(--f-mono); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--faint);
+  }
+
+  /* ---------- Handy: Panel wird zum Sheet ---------- */
+  @media (max-width: 760px) {
+    #panel {
+      top: auto; left: 0; right: 0; bottom: 0; width: auto;
+      height: 46%;
+      border-radius: 16px 16px 0 0; border-left: 0; border-right: 0; border-bottom: 0;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      transition: height .3s ease;
+    }
+    #panel.tall { height: 82%; }
+    .sheet-handle {
+      display: flex; justify-content: center; appearance: none; background: none; border: 0; cursor: pointer;
+      padding: 8px 0 0; width: 100%;
+    }
+    .sheet-handle span { width: 38px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.25); }
+    .ph { padding: 6px max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px)); gap: 8px; }
+    h1 { font-size: 24px; }
+    .stats { gap: 14px; }
+    .stat b { font-size: 17px; }
+    .stat span { font-size: 10.5px; }
+    .filters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 calc(-1 * max(16px, env(safe-area-inset-right, 0px))) 0 calc(-1 * max(16px, env(safe-area-inset-left, 0px))); padding: 0 max(16px, env(safe-area-inset-right, 0px)) 2px max(16px, env(safe-area-inset-left, 0px)); }
+    .filters::-webkit-scrollbar { display: none; }
+    .chip { flex: none; }
+    #panel.has-detail .stats, #panel.has-detail .filters { display: none; }
+    .item, .group-h, .detail-in, .credits { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+    .d-title { font-size: 26px; }
+    .hud {
+      bottom: auto;
+      top: max(12px, env(safe-area-inset-top, 0px));
+    }
+    .legend { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .live { animation: none; }
+    #panel { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="globe" role="img" aria-label="Drehbarer 3D-Globus. Konfliktgebiete sind farbig markiert."></div>
+  <div id="loading">Erde wird geladen …</div>
+
+  <aside id="panel" aria-label="Lagebild">
+    <button class="sheet-handle" id="handle" type="button" aria-label="Liste vergrössern"><span></span></button>
+    <header class="ph">
+      <div class="eyebrow"><span class="live" aria-hidden="true"></span>Lagebild · Stand 10. November 2026</div>
+      <h1>Konflikte der Welt</h1>
+      <div class="stats" id="stats"></div>
+      <div class="filters" id="filters" role="group" aria-label="Nach Art des Konflikts filtern"></div>
+    </header>
+    <div class="scroll" id="list"></div>
+    <div class="scroll" id="detail" hidden></div>
+  </aside>
+
+  <div class="hud">
+    <div class="seg" role="group" aria-label="Darstellung der Erde">
+      <button type="button" id="tex-day" aria-pressed="true">Tag</button>
+      <button type="button" id="tex-night" aria-pressed="false">Nacht</button>
+    </div>
+    <div class="legend" aria-hidden="true">
+      <span class="t">Intensität</span>
+      <div class="row">
+        <span class="lv"><span class="ring" style="width:16px;height:16px"></span>hoch</span>
+        <span class="lv"><span class="ring" style="width:11px;height:11px"></span>mittel</span>
+        <span class="lv"><span class="ring" style="width:7px;height:7px"></span>niedrig</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/globe.gl@2.46.2/dist/globe.gl.min.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  /* ================= Daten ================= */
+  const TYPES = {
+    war:    { label: "Krieg",            long: "Krieg zwischen Staaten / grenzüberschreitend", color: "#ff4a5a" },
+    civil:  { label: "Bürgerkrieg",      long: "Bürgerkrieg",                                  color: "#ff9136" },
+    insurg: { label: "Aufstand & Terror", long: "Aufstand & Terror",                           color: "#f2c94c" },
+    crime:  { label: "Bandengewalt",     long: "Banden- & Kartellgewalt",                      color: "#b58cff" }
+  };
+  const LEVEL = { 3: "Hohe Intensität", 2: "Mittlere Intensität", 1: "Niedrige Intensität" };
+  const LEVEL_SHORT = { 3: "hoch", 2: "mittel", 1: "niedrig" };
+
+  // ISO-3166 numerisch → deutscher Name (nur für betroffene Länder nötig)
+  const NAMES = {
+    "804": "Ukraine", "643": "Russland", "364": "Iran", "376": "Israel", "275": "Palästina", "422": "Libanon",
+    "586": "Pakistan", "004": "Afghanistan", "356": "Indien", "729": "Sudan", "231": "Äthiopien", "232": "Eritrea",
+    "887": "Jemen", "682": "Saudi-Arabien", "104": "Myanmar", "180": "DR Kongo", "646": "Ruanda", "466": "Mali",
+    "854": "Burkina Faso", "562": "Niger", "566": "Nigeria", "706": "Somalia", "728": "Südsudan", "760": "Syrien",
+    "332": "Haiti", "484": "Mexiko", "170": "Kolumbien", "862": "Venezuela", "764": "Thailand", "116": "Kambodscha",
+    "508": "Mosambik", "120": "Kamerun", "140": "Zentralafrikanische Republik", "218": "Ecuador", "840": "USA"
+  };
+
+  // countries = Schauplatz (eingefärbt), involved = beteiligt (nur Umriss), arcs = [vonLat, vonLng, nachLat, nachLng]
+  const CONFLICTS = [
+    {
+      id: "ukraine", name: "Russland – Ukraine", type: "war", level: 3,
+      status: "Aktiv · Gespräche in Abu Dhabi", since: "2022", sinceLong: "Februar 2022 (im Donbas seit 2014)",
+      countries: ["804"], involved: ["643"],
+      points: [{ n: "Front im Donbas", lat: 48.3, lng: 37.8 }, { n: "Front bei Saporischschja", lat: 47.45, lng: 35.9 }, { n: "Kiew (Luftangriffe)", lat: 50.45, lng: 30.52 }],
+      arcs: [[55.75, 37.62, 48.3, 37.8]],
+      parties: ["Russland", "Ukraine (unterstützt von europäischen Staaten und den USA)"],
+      lead: "Der grösste Krieg in Europa seit 1945. Russland greift seit Februar 2022 die ganze Ukraine an und hält rund ein Fünftel des Landes besetzt.",
+      news: "Seit dem 10. November 2026 verhandeln die USA, Russland und die Ukraine in Abu Dhabi über Sicherheitsgarantien. Russland lehnt eine vorübergehende Waffenruhe ab und verlangt den ganzen Donbas. Kurz zuvor tötete ein russischer Angriff laut Kiew 55 Menschen, die in einem Frontdorf für Hilfsgüter anstanden.",
+      toll: "Hunderttausende Tote und Verwundete auf beiden Seiten (Schätzungen). Die UNO hat über 14’000 getötete Zivilpersonen erfasst."
+    },
+    {
+      id: "iran", name: "Iran-Krieg (USA & Israel – Iran)", type: "war", level: 2,
+      status: "Kampfpause · kein Frieden", since: "2026", sinceLong: "28. Februar 2026",
+      countries: ["364"], involved: ["840", "376"],
+      points: [{ n: "Teheran", lat: 35.69, lng: 51.39 }, { n: "Strasse von Hormus", lat: 26.57, lng: 56.25 }],
+      arcs: [[38.9, -77.04, 35.69, 51.39], [32.08, 34.78, 35.69, 51.39], [35.69, 51.39, 32.08, 34.78]],
+      parties: ["USA", "Israel", "Iran", "Iran-nahe Milizen im Irak und im Libanon"],
+      lead: "Am 28. Februar 2026 griffen die USA und Israel den Iran an; dabei wurde Revolutionsführer Ali Khamenei getötet. Iran sperrte die Strasse von Hormus und beschoss Israel sowie Ziele in mehreren Golfstaaten.",
+      news: "Eine von Pakistan vermittelte Waffenruhe vom April zerbrach im Juli. Die USA blockieren seit April Irans Häfen. Am 9. November erklärte Präsident Trump den Krieg für «militärisch praktisch vorbei». Iran meldet aber weitere US-Angriffe und hält an seinen Bedingungen für ein Kriegsende fest.",
+      toll: "Laut iranischen Stellen zwischen 1’900 und 3’500 Tote im Iran, dazu Opfer in Israel, im Irak und in den Golfstaaten."
+    },
+    {
+      id: "gaza", name: "Israel – Gaza / Palästina", type: "war", level: 2,
+      status: "Brüchige Waffenruhe", since: "2023", sinceLong: "7. Oktober 2023",
+      countries: ["275"], involved: ["376"],
+      points: [{ n: "Gazastreifen", lat: 31.42, lng: 34.38 }, { n: "Westjordanland", lat: 32.0, lng: 35.25 }],
+      arcs: [],
+      parties: ["Israel", "Hamas und andere bewaffnete Gruppen"],
+      lead: "Nach dem Hamas-Angriff vom 7. Oktober 2023 führte Israel einen verheerenden Krieg im Gazastreifen. Seit Oktober 2025 gilt eine Waffenruhe, Israel kontrolliert aber weiterhin einen grossen Teil des Gebiets.",
+      news: "Ein Entwaffnungsabkommen vom Juli 2026 stockt: Israel will erst nach der Entwaffnung der Hamas abziehen, die Hamas verweist auf andauernde israelische Angriffe. Anfang November stimmte Israel der Stationierung von rund 250 Soldaten einer internationalen Stabilisierungstruppe zu. Im Westjordanland gehen Militärrazzien weiter.",
+      toll: "Über 70’000 Tote im Gazastreifen laut dortigem Gesundheitsministerium; rund 1’200 Tote beim Angriff vom 7. Oktober in Israel."
+    },
+    {
+      id: "libanon", name: "Israel – Hisbollah (Libanon)", type: "war", level: 2,
+      status: "Abkommen · Angriffe gehen weiter", since: "2026", sinceLong: "2. März 2026 (erneut)",
+      countries: ["422"], involved: ["376"],
+      points: [{ n: "Südlibanon", lat: 33.27, lng: 35.45 }],
+      arcs: [[32.08, 34.78, 33.27, 35.45]],
+      parties: ["Israel", "Hisbollah", "Libanesische Armee (soll die Hisbollah entwaffnen)"],
+      lead: "Nach dem Angriff auf den Iran eröffnete die Hisbollah im März 2026 erneut das Feuer. Israel bombardierte Libanon und rückte mit Bodentruppen in den Süden vor.",
+      news: "Ein von den USA vermitteltes Abkommen zwischen Israel und Libanon vom Juni lehnt die Hisbollah ab. Israel fliegt weiter fast täglich Angriffe im Süden; Anfang November starben bei einem Angriff auf ein Auto drei Mädchen und ihre Grossmutter."
+    },
+    {
+      id: "pakistan-afghanistan", name: "Pakistan – Afghanistan", type: "war", level: 2,
+      status: "Grenzkrieg", since: "2025", sinceLong: "Oktober 2025",
+      countries: ["004"], involved: ["586"],
+      points: [{ n: "Kunar", lat: 34.85, lng: 71.1 }, { n: "Helmand", lat: 31.6, lng: 64.4 }],
+      arcs: [[33.69, 73.05, 34.85, 71.1]],
+      parties: ["Pakistan", "Taliban-Regierung Afghanistans", "Pakistanische Taliban (TTP)"],
+      lead: "Pakistan wirft den Taliban vor, der pakistanischen Taliban (TTP) Unterschlupf zu gewähren. Seit Oktober 2025 kommt es immer wieder zu Grenzgefechten und pakistanischen Luftangriffen in Afghanistan.",
+      news: "Nach einem Selbstmordanschlag im Nordwesten Pakistans im September flog Pakistan mehrere Angriffswellen, unter anderem am 1. Oktober in Kunar und Helmand. Laut UNO starben dabei mindestens 10 Zivilpersonen, die meisten davon Kinder. Ende Oktober beschossen die Taliban erneut pakistanisches Gebiet."
+    },
+    {
+      id: "pakistan", name: "Pakistan: TTP & Belutschistan", type: "insurg", level: 2,
+      status: "Aktiv", since: "2007", sinceLong: "2007 (TTP), Belutschistan seit 2004",
+      countries: ["586"], involved: [],
+      points: [{ n: "Waziristan / Khyber Pakhtunkhwa", lat: 32.8, lng: 70.1 }, { n: "Belutschistan", lat: 29.0, lng: 66.2 }],
+      arcs: [],
+      parties: ["Pakistanische Armee", "Pakistanische Taliban (TTP)", "Belutschische Separatisten (u. a. BLA)"],
+      lead: "Im Nordwesten kämpft die pakistanische Taliban gegen den Staat, in Belutschistan verüben Separatisten Anschläge auf Armee, Infrastruktur und Arbeiter aus anderen Provinzen.",
+      news: "2025 war das tödlichste Jahr seit einem Jahrzehnt. Ein Anschlag im September 2026 löste die jüngsten pakistanischen Luftangriffe in Afghanistan aus."
+    },
+    {
+      id: "kaschmir", name: "Indien – Pakistan (Kaschmir)", type: "war", level: 1,
+      status: "Angespannt", since: "1947", sinceLong: "1947; Kurzkrieg im Mai 2025",
+      countries: [], involved: ["356", "586"],
+      points: [{ n: "Kaschmir / Kontrolllinie", lat: 34.08, lng: 74.8 }],
+      arcs: [],
+      parties: ["Indien", "Pakistan", "Militante Gruppen in Kaschmir"],
+      lead: "Nach einem Anschlag in Pahalgam mit 26 Toten lieferten sich die beiden Atommächte im Mai 2025 vier Tage lang Luft- und Raketenangriffe. Seither gilt eine Waffenruhe; Indien hat den Indus-Wasservertrag ausgesetzt.",
+      news: "Im Oktober 2026 bestellten beide Länder gegenseitig Diplomaten ein, nachdem Indien an der Grenze zwei Pakistaner getötet hatte."
+    },
+    {
+      id: "sudan", name: "Sudan", type: "civil", level: 3,
+      status: "Aktiver Krieg", since: "2023", sinceLong: "15. April 2023",
+      countries: ["729"], involved: [],
+      points: [{ n: "Kordofan", lat: 13.18, lng: 30.22 }, { n: "Darfur / El Fasher", lat: 13.63, lng: 25.35 }],
+      arcs: [],
+      parties: ["Sudanesische Armee (SAF) und verbündete Gruppen", "Rapid Support Forces (RSF)"],
+      lead: "Armee und RSF-Miliz kämpfen um die Macht. Es ist die grösste humanitäre Krise der Welt, mit Hungersnot in mehreren Regionen.",
+      news: "Die RSF kontrolliert seit dem Fall von El Fasher (Oktober 2025) ganz Darfur. Im November 2026 rückt die Armee in West- und Nord-Kordofan vor, um Wege nach Darfur zu öffnen. Beide Seiten setzen massiv Drohnen ein.",
+      toll: "Schätzungen reichen bis über 150’000 Tote. Rund 12 Millionen Menschen wurden vertrieben."
+    },
+    {
+      id: "tigray", name: "Äthiopien: Tigray & Eritrea", type: "civil", level: 3,
+      status: "Neuer Krieg", since: "2026", sinceLong: "2026 (erneut; schon 2020–2022)",
+      countries: ["231"], involved: ["232"],
+      points: [{ n: "Mekelle, Tigray", lat: 13.5, lng: 39.47 }],
+      arcs: [[15.32, 38.93, 13.5, 39.47]],
+      parties: ["Äthiopische Bundesarmee und verbündete Tigray-Kräfte", "TPLF / Tigray-Streitkräfte", "Eritrea (Beteiligung umstritten)"],
+      lead: "Vier Jahre nach dem Friedensabkommen von Pretoria ist der Krieg in Tigray wieder ausgebrochen. Äthiopien wirft Eritrea, Sudan und Ägypten vor, die TPLF zu unterstützen.",
+      news: "Anfang Oktober 2026 nahmen Bundestruppen die Regionalhauptstadt Mekelle sowie Adwa und Adigrat ein; die TPLF zog sich aufs Land zurück. Eritrea brach die diplomatischen Beziehungen ab, Berichten zufolge drangen eritreische Truppen nach Tigray vor. Premier Abiy Ahmed setzte eine Übergangsverwaltung für sechs Monate ein.",
+      toll: "Im Krieg 2020–2022 starben nach Schätzungen Hunderttausende Menschen."
+    },
+    {
+      id: "amhara-oromia", name: "Äthiopien: Amhara & Oromia", type: "insurg", level: 2,
+      status: "Aktiv", since: "2023", sinceLong: "2023 (Amhara), Oromia seit 2018",
+      countries: ["231"], involved: [],
+      points: [{ n: "Amhara", lat: 11.6, lng: 37.39 }, { n: "Oromia", lat: 9.1, lng: 36.0 }],
+      arcs: [],
+      parties: ["Äthiopische Bundesarmee", "Fano-Milizen (Amhara)", "Oromo-Befreiungsarmee (OLA)"],
+      lead: "In der Region Amhara kämpfen Fano-Milizen seit 2023 gegen die Regierung, in Oromia die OLA. Drohnenangriffe der Armee treffen immer wieder Zivilpersonen.",
+      news: "Beide Aufstände sind ungelöst und laufen parallel zum neuen Krieg in Tigray weiter."
+    },
+    {
+      id: "jemen", name: "Jemen: Huthis – Regierung & Saudi-Arabien", type: "civil", level: 3,
+      status: "Eskalation", since: "2014", sinceLong: "2014; Saudi-Arabien greift seit 2015 ein",
+      countries: ["887"], involved: ["682"],
+      points: [{ n: "Marib", lat: 15.46, lng: 45.33 }, { n: "Taiz", lat: 13.58, lng: 44.02 }],
+      arcs: [[15.37, 44.19, 24.71, 46.68], [24.71, 46.68, 15.46, 45.33]],
+      parties: ["Huthis (Ansar Allah, vom Iran unterstützt)", "Jemenitische Regierung", "Saudi-Arabien"],
+      lead: "Seit 2014 kämpfen die Huthis gegen die international anerkannte Regierung. 2026 ist auch der Krieg mit Saudi-Arabien neu entbrannt.",
+      news: "Im Oktober und November 2026 wird heftig in Marib, Al-Jawf und Taiz gekämpft. Die Huthis feuern Raketen und Drohnen auf Saudi-Arabien, auch auf Ölanlagen und Riad; Saudi-Arabien fliegt massive Luftangriffe.",
+      toll: "Die UNO schätzte bis 2021 rund 377’000 Tote, durch Kämpfe und durch Hunger und Krankheiten."
+    },
+    {
+      id: "myanmar", name: "Myanmar", type: "civil", level: 3,
+      status: "Aktiver Krieg", since: "2021", sinceLong: "Militärputsch, 1. Februar 2021",
+      countries: ["104"], involved: [],
+      points: [{ n: "Rakhine / Sittwe", lat: 20.15, lng: 92.9 }, { n: "Sagaing", lat: 22.0, lng: 95.6 }],
+      arcs: [],
+      parties: ["Militärjunta", "Arakan Army und weitere ethnische Armeen", "Volksverteidigungskräfte (PDF)"],
+      lead: "Seit dem Putsch 2021 kämpft das Militär gegen ein breites Bündnis aus Widerstandsgruppen und ethnischen Armeen, die grosse Teile des Landes kontrollieren.",
+      news: "Eine Offensive der Junta in Rakhine seit September 2026 kommt kaum voran: Die Arakan Army eroberte im Oktober Stellungen bei der Hauptstadt Sittwe und bei Kyaukphyu. Ein Luftangriff auf einen Markt in Kyauktaw tötete Ende September 50 Zivilpersonen.",
+      toll: "Zehntausende Tote, über 3 Millionen Vertriebene."
+    },
+    {
+      id: "kongo", name: "DR Kongo: M23 & Ostkongo", type: "civil", level: 3,
+      status: "Kämpfe trotz Abkommen", since: "2021", sinceLong: "2021 (M23), Konflikte seit den 1990ern",
+      countries: ["180"], involved: ["646"],
+      points: [{ n: "Goma, Nord-Kivu", lat: -1.68, lng: 29.22 }, { n: "Süd-Kivu", lat: -3.4, lng: 29.14 }, { n: "Ituri", lat: 1.56, lng: 30.25 }],
+      arcs: [[-1.95, 30.06, -1.68, 29.22]],
+      parties: ["Kongolesische Armee und verbündete Milizen", "M23/AFC (von Ruanda unterstützt)", "ADF und über hundert weitere Gruppen"],
+      lead: "Die von Ruanda unterstützte M23 eroberte Anfang 2025 die Grossstädte Goma und Bukavu. Im Osten des Landes sind über hundert bewaffnete Gruppen aktiv.",
+      news: "Trotz des Washingtoner Abkommens zwischen Kongo und Ruanda und des Rahmenabkommens von Doha wird weiter gekämpft. Seit August 2026 gibt es einen Fahrplan für Verhandlungen und eine Mission zur Überwachung der Waffenruhe; im Oktober verschlechterte sich die Lage laut Crisis Group trotzdem.",
+      toll: "Rund 7 Millionen Binnenvertriebene."
+    },
+    {
+      id: "sahel", name: "Sahel: Mali, Burkina Faso, Niger", type: "insurg", level: 3,
+      status: "Aktiv", since: "2012", sinceLong: "2012 (Mali)",
+      countries: ["466", "854", "562"], involved: [],
+      points: [{ n: "Zentralmali", lat: 14.5, lng: -4.2 }, { n: "Timbuktu", lat: 16.77, lng: -3.0 }, { n: "Nordburkina", lat: 14.1, lng: -1.63 }, { n: "Tillabéri, Niger", lat: 14.21, lng: 1.45 }],
+      arcs: [],
+      parties: ["Militärregierungen und russische Söldner (Africa Corps)", "JNIM (al-Qaida)", "Islamischer Staat Sahel"],
+      lead: "Dschihadistische Gruppen kontrollieren weite Teile des Sahel. Die Militärregierungen in Mali, Burkina Faso und Niger haben westliche Truppen ausgewiesen und setzen auf Russland.",
+      news: "Die al-Qaida-nahe JNIM blockiert Timbuktu und bedroht die Strassen zwischen Dakar und Bamako. Im Oktober 2026 eroberte Malis Armee die Stadt Kidal zurück. An der Grenze zu Burkina Faso bekämpfen sich JNIM und der Islamische Staat gegenseitig.",
+      toll: "Laut Global Terrorism Index die Region mit den meisten Terrortoten weltweit."
+    },
+    {
+      id: "nigeria", name: "Nigeria & Tschadsee", type: "insurg", level: 2,
+      status: "Aktiv", since: "2009", sinceLong: "2009 (Boko Haram)",
+      countries: ["566"], involved: [],
+      points: [{ n: "Borno", lat: 11.85, lng: 13.16 }, { n: "Zamfara", lat: 12.17, lng: 6.25 }],
+      arcs: [],
+      parties: ["Nigerianische Armee (mit US-Luftunterstützung)", "ISWAP und Boko Haram", "Bewaffnete Banden im Nordwesten"],
+      lead: "Im Nordosten kämpfen Boko Haram und der Islamische Staat (ISWAP) gegen den Staat, im Nordwesten terrorisieren Banden die Dörfer mit Massenentführungen. Die Gewalt greift auf Kamerun, Tschad und Niger über.",
+      news: "Seit Dezember 2025 fliegen die USA zusammen mit Nigeria Luftangriffe gegen den IS. Laut Armee wurden im Oktober 2026 in Borno und Adamawa über 100 ISWAP-Kämpfer getötet."
+    },
+    {
+      id: "somalia", name: "Somalia", type: "insurg", level: 2,
+      status: "Aktiv", since: "2006", sinceLong: "2006 (al-Shabaab)",
+      countries: ["706"], involved: [],
+      points: [{ n: "Region Bay / Baidoa", lat: 3.11, lng: 43.65 }, { n: "Mogadischu", lat: 2.05, lng: 45.32 }],
+      arcs: [],
+      parties: ["Bundesregierung und Truppen der Afrikanischen Union", "al-Shabaab (al-Qaida)", "Oppositionskräfte in den Bundesstaaten"],
+      lead: "Die al-Qaida-nahe al-Shabaab kontrolliert grosse Teile Süd- und Zentralsomalias. Dazu kommen Machtkämpfe zwischen der Zentralregierung und den Bundesstaaten.",
+      news: "Im Oktober 2026 eroberten Oppositionskräfte im Bundesstaat South West fünf Städte in der Region Bay. Al-Shabaab fügte Regierungstruppen bei einem Hinterhalt schwere Verluste zu. Die politische UNO-Mission endete am 31. Oktober."
+    },
+    {
+      id: "suedsudan", name: "Südsudan", type: "civil", level: 2,
+      status: "Erneute Kämpfe", since: "2025", sinceLong: "2025 (erneut; Bürgerkrieg schon 2013–2018)",
+      countries: ["728"], involved: [],
+      points: [{ n: "Jonglei", lat: 7.6, lng: 32.4 }, { n: "Upper Nile / Nasir", lat: 8.6, lng: 33.07 }],
+      arcs: [],
+      parties: ["Regierungsarmee (SSPDF)", "SPLA-IO von Riek Machar", "White Army (Nuer-Milizen)"],
+      lead: "Seit der Festnahme von Vizepräsident Riek Machar 2025 ist die Machtteilung zerbrochen. Regierung und Machars SPLA-IO kämpfen wieder gegeneinander.",
+      news: "Seit Dezember 2025 wird in Jonglei und Upper Nile gekämpft, die Armee setzt dabei Luftangriffe ein. Die Gewalt hat Zehntausende Menschen vertrieben."
+    },
+    {
+      id: "syrien", name: "Syrien", type: "civil", level: 1,
+      status: "Fragile Stabilisierung", since: "2011", sinceLong: "2011; neue Regierung seit Dezember 2024",
+      countries: ["760"], involved: ["376"],
+      points: [{ n: "Suwaida", lat: 32.71, lng: 36.57 }],
+      arcs: [],
+      parties: ["Übergangsregierung", "Drusische Milizen in Suwaida", "Israel", "IS-Zellen"],
+      lead: "Nach dem Sturz Assads im Dezember 2024 versucht die neue Regierung das Land zu einen. 2025 kam es zu Massakern an Alawiten an der Küste und an Drusen in Suwaida.",
+      news: "Anfang 2026 übernahm die Armee nach einer kurzen Offensive die meisten Gebiete der kurdisch geführten SDF im Nordosten; die SDF sollen in die Armee eingegliedert werden. Suwaida ist weiter in der Hand drusischer Milizen, Israel greift im Süden immer wieder an."
+    },
+    {
+      id: "haiti", name: "Haiti", type: "crime", level: 3,
+      status: "Eskalation", since: "2021", sinceLong: "2021 (Ermordung von Präsident Moïse)",
+      countries: ["332"], involved: [],
+      points: [{ n: "Port-au-Prince", lat: 18.54, lng: -72.34 }],
+      arcs: [],
+      parties: ["Bandenallianz «Viv Ansanm» u. a.", "Polizei", "Gang Suppression Force (von der UNO gestützt)"],
+      lead: "Bewaffnete Banden kontrollieren fast die ganze Hauptstadt und breiten sich auf das Land aus. Über eine Million Menschen sind vertrieben.",
+      news: "Am 18. Oktober 2026 griffen Banden in Croix-des-Bouquets ein Fahrzeug salvadorianischer Soldaten der Gang Suppression Force an, der bisher schwerste Angriff auf die Truppe. Sie hat erst rund 2’000 der 5’550 bewilligten Soldaten im Land.",
+      toll: "Über 5’000 Tote pro Jahr durch Bandengewalt (UNO-Zahlen 2024)."
+    },
+    {
+      id: "mexiko", name: "Mexiko: Kartellkrieg", type: "crime", level: 3,
+      status: "Aktiv", since: "2006", sinceLong: "2006 (Drogenkrieg)",
+      countries: ["484"], involved: [],
+      points: [{ n: "Culiacán, Sinaloa", lat: 24.8, lng: -107.39 }, { n: "Michoacán", lat: 19.2, lng: -101.9 }],
+      arcs: [],
+      parties: ["Sinaloa-Kartell (Fraktionen Chapitos und Mayos)", "Jalisco-Kartell (CJNG)", "Mexikanischer Staat"],
+      lead: "Im Kampf um Drogenrouten, Erpressung und Gebiete töten Kartelle jedes Jahr Zehntausende Menschen.",
+      news: "Seit September 2024 bekriegen sich zwei Fraktionen des Sinaloa-Kartells in Culiacán. Die USA stufen mehrere Kartelle als Terrororganisationen ein und erhöhen den Druck auf Mexiko.",
+      toll: "Über 100’000 Menschen gelten als verschwunden."
+    },
+    {
+      id: "kolumbien", name: "Kolumbien", type: "insurg", level: 2,
+      status: "Eskalation", since: "1964", sinceLong: "1964; neue Gewaltwelle seit 2025",
+      countries: ["170"], involved: [],
+      points: [{ n: "Catatumbo", lat: 8.6, lng: -73.0 }, { n: "Arauca", lat: 7.08, lng: -70.76 }],
+      arcs: [],
+      parties: ["Kolumbianische Armee", "ELN-Guerilla", "FARC-Dissidenten", "Clan del Golfo"],
+      lead: "Zehn Jahre nach dem Friedensvertrag mit der FARC kämpfen Guerillas und Drogenbanden um Kokaanbaugebiete und Schmuggelrouten.",
+      news: "In Catatumbo an der Grenze zu Venezuela wurden laut UNO von Januar bis August 2026 über 79’000 Menschen vertrieben. Präsident Abelardo de la Espriella ordnete am 19. Oktober eine neue Offensive gegen ELN und Dissidenten in Arauca an."
+    },
+    {
+      id: "venezuela", name: "Venezuela", type: "crime", level: 1,
+      status: "Instabil nach US-Eingriff", since: "2026", sinceLong: "Januar 2026",
+      countries: ["862"], involved: ["840"],
+      points: [{ n: "Caracas", lat: 10.49, lng: -66.88 }],
+      arcs: [],
+      parties: ["Übergangsregierung unter Delcy Rodríguez", "USA", "ELN", "Colectivos und «Megabandas»"],
+      lead: "Im Januar 2026 nahmen US-Truppen Präsident Nicolás Maduro in Caracas fest und brachten ihn in die USA. Seither regiert eine Übergangsregierung unter Delcy Rodríguez.",
+      news: "Bewaffnete Gruppen wie die kolumbianische ELN und regierungsnahe Colectivos bleiben aktiv. Anfang November griff Venezuelas Armee ein ELN-Lager an; die USA verhandeln über eine längerfristige Militärpräsenz."
+    },
+    {
+      id: "ecuador", name: "Ecuador", type: "crime", level: 2,
+      status: "Aktiv", since: "2024", sinceLong: "Januar 2024 («interner bewaffneter Konflikt»)",
+      countries: ["218"], involved: [],
+      points: [{ n: "Guayaquil", lat: -2.17, lng: -79.92 }],
+      arcs: [],
+      parties: ["Armee und Polizei", "Über 20 kriminelle Banden (u. a. Los Choneros, Los Lobos)"],
+      lead: "Der Kokainhandel hat Ecuador zu einem der gewalttätigsten Länder Lateinamerikas gemacht. Die Regierung hat 2024 einen «internen bewaffneten Konflikt» gegen die Banden ausgerufen.",
+      news: "Die Mordrate ist eine der höchsten der Welt; Gefängnisse und Hafenstädte wie Guayaquil sind Brennpunkte."
+    },
+    {
+      id: "thailand-kambodscha", name: "Thailand – Kambodscha", type: "war", level: 1,
+      status: "Waffenruhe", since: "2025", sinceLong: "Juli 2025",
+      countries: ["764", "116"], involved: [],
+      points: [{ n: "Grenzgebiet bei Preah Vihear", lat: 14.39, lng: 104.68 }],
+      arcs: [],
+      parties: ["Thailand", "Kambodscha"],
+      lead: "Im Juli und im Dezember 2025 kämpften die beiden Länder mit Artillerie und Kampfflugzeugen um umstrittene Grenzgebiete. Hunderttausende Menschen flohen.",
+      news: "Die Waffenruhe vom 27. Dezember 2025 hält weitgehend, ist aber brüchig. Die Grenzübergänge sind weiterhin geschlossen."
+    },
+    {
+      id: "mosambik", name: "Mosambik: Cabo Delgado", type: "insurg", level: 1,
+      status: "Aktiv", since: "2017", sinceLong: "2017",
+      countries: ["508"], involved: [],
+      points: [{ n: "Cabo Delgado", lat: -11.35, lng: 40.35 }],
+      arcs: [],
+      parties: ["Mosambikanische Armee und ruandische Truppen", "Islamischer Staat Mosambik"],
+      lead: "Ein Ableger des Islamischen Staats greift im Norden Mosambiks Dörfer und Städte an. Ruandische Truppen unterstützen die Armee.",
+      news: "Die Angriffe flammen immer wieder auf und vertreiben die Bevölkerung, auch in der Nähe grosser Gasprojekte."
+    },
+    {
+      id: "kamerun", name: "Kamerun", type: "insurg", level: 1,
+      status: "Aktiv", since: "2017", sinceLong: "2017 (anglophone Regionen)",
+      countries: ["120"], involved: [],
+      points: [{ n: "Bamenda", lat: 5.96, lng: 10.15 }, { n: "Äusserster Norden", lat: 10.6, lng: 14.3 }],
+      arcs: [],
+      parties: ["Kamerunische Armee", "Anglophone Separatisten", "Boko Haram (im Norden)"],
+      lead: "In den englischsprachigen Regionen kämpfen Separatisten für einen eigenen Staat, im äussersten Norden verübt Boko Haram Anschläge.",
+      news: "Beide Konflikte sind ungelöst; Hunderttausende Menschen sind vertrieben."
+    },
+    {
+      id: "zentralafrika", name: "Zentralafrikanische Republik", type: "civil", level: 1,
+      status: "Aktiv", since: "2012", sinceLong: "2012",
+      countries: ["140"], involved: [],
+      points: [{ n: "Norden und Osten", lat: 7.0, lng: 21.5 }],
+      arcs: [],
+      parties: ["Regierung und russische Söldner", "Verschiedene Rebellengruppen"],
+      lead: "Trotz Friedensabkommen kontrollieren bewaffnete Gruppen Teile des Landes. Die Regierung stützt sich auf russische Söldner.",
+      news: "Die Gewalt ist geringer als vor einigen Jahren, aber im Norden und Osten kommt es weiter zu Kämpfen."
+    }
+  ];
+
+  /* ================= Helfer ================= */
+  const $ = (s, r) => (r || document).querySelector(s);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const hexRgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const rgba = (h, a) => { const [r, g, b] = hexRgb(h); return `rgba(${r},${g},${b},${a})`; };
+  const colorOf = c => TYPES[c.type].color;
+  const fmtCoord = (lat, lng) => `${Math.abs(lat).toFixed(1)}° ${lat >= 0 ? "N" : "S"} · ${Math.abs(lng).toFixed(1)}° ${lng >= 0 ? "O" : "W"}`;
+  const bars = l => `<span class="bars" data-l="${l}" aria-hidden="true"><i></i><i></i><i></i></span>`;
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const isMobile = () => window.matchMedia("(max-width: 760px)").matches;
+
+  const byId = Object.fromEntries(CONFLICTS.map(c => [c.id, c]));
+  const active = new Set(Object.keys(TYPES));
+  let selected = null;
+  let hoverPoly = null;
+
+  // Land → Konflikte
+  const theatreOf = {}, involvedOf = {};
+  CONFLICTS.forEach(c => {
+    c.countries.forEach(id => (theatreOf[id] = theatreOf[id] || []).push(c));
+    c.involved.forEach(id => (involvedOf[id] = involvedOf[id] || []).push(c));
+  });
+  const visible = c => active.has(c.type);
+  const order = Object.fromEntries(CONFLICTS.map((c, i) => [c.id, i]));
+  const sortConf = (a, b) => b.level - a.level || order[a.id] - order[b.id];
+
+  const CREDITS = `<p class="credits">Auswahl ohne Anspruch auf Vollständigkeit, sortiert nach Intensität und Bedeutung. Zusammengestellt aus Berichten von Crisis Group (CrisisWatch), ACLED, UNO, AP, Reuters, Al Jazeera u. a.; Opferzahlen sind Schätzungen. Karten: Natural Earth · Bilder: NASA.</p>`;
+
+  /* ================= Panel ================= */
+  const listEl = $("#list"), detailEl = $("#detail"), panel = $("#panel");
+
+  function renderStats() {
+    const vis = CONFLICTS.filter(visible);
+    const high = vis.filter(c => c.level === 3).length;
+    const countries = new Set(vis.flatMap(c => c.countries.concat(c.involved)));
+    $("#stats").innerHTML =
+      `<div class="stat"><b>${vis.length}</b><span>Konflikte</span></div>` +
+      `<div class="stat"><b>${high}</b><span>hohe Intensität</span></div>` +
+      `<div class="stat"><b>${countries.size}</b><span>Länder betroffen</span></div>`;
+  }
+
+  function renderFilters() {
+    $("#filters").innerHTML = Object.entries(TYPES).map(([k, t]) => {
+      const n = CONFLICTS.filter(c => c.type === k).length;
+      return `<button type="button" class="chip" data-type="${k}" aria-pressed="${active.has(k)}" style="color:${t.color}">` +
+        `<span class="dot" style="background:${t.color}"></span><span style="color:var(--fg)">${t.label}</span><span class="n">${n}</span></button>`;
+    }).join("");
+  }
+
+  function renderList() {
+    const vis = CONFLICTS.filter(visible).sort(sortConf);
+    if (!vis.length) { listEl.innerHTML = `<p class="empty">Keine Kategorie ausgewählt. Tippe oben auf eine Kategorie, um Konflikte einzublenden.</p>`; return; }
+    let html = "";
+    [3, 2, 1].forEach(l => {
+      const g = vis.filter(c => c.level === l);
+      if (!g.length) return;
+      html += `<div class="group-h">${bars(l)}${LEVEL[l]} · ${g.length}</div>`;
+      html += g.map(c => `<button type="button" class="item" data-id="${c.id}" style="--c:${colorOf(c)}">` +
+        `<span class="mk" aria-hidden="true"></span><span class="nm">${esc(c.name)}</span>` +
+        `<span class="yr">seit ${esc(c.since)}</span><span class="st">${esc(TYPES[c.type].label)} · ${esc(c.status)}</span></button>`).join("");
+    });
+    listEl.innerHTML = html + CREDITS;
+  }
+
+  function renderDetail(c) {
+    const p = c.points[0];
+    const related = [...new Set(c.countries.flatMap(id => theatreOf[id] || []).concat(c.countries.flatMap(id => involvedOf[id] || [])))].filter(x => x !== c);
+    const where = c.countries.concat(c.involved).map(id => NAMES[id]).filter(Boolean);
+    detailEl.innerHTML = `<div class="detail-in" style="--c:${colorOf(c)}">
+      <button type="button" class="back" id="back">← Alle Konflikte</button>
+      <div class="tags">
+        <span class="tag type"><span class="dot" style="background:var(--c)"></span>${esc(TYPES[c.type].long)}</span>
+        <span class="tag">${bars(c.level)} Intensität ${LEVEL_SHORT[c.level]}</span>
+        <span class="tag">${esc(c.status)}</span>
+      </div>
+      <h2 class="d-title">${esc(c.name)}</h2>
+      <div class="coords"><span>${fmtCoord(p.lat, p.lng)}</span><span>seit ${esc(c.sinceLong)}</span></div>
+      <p class="lead">${esc(c.lead)}</p>
+      <div class="sec news"><h3>Neueste Entwicklung</h3><p>${esc(c.news)}</p></div>
+      <div class="sec"><h3>Konfliktparteien</h3><ul class="parties">${c.parties.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>
+      ${c.toll ? `<div class="sec"><h3>Opfer &amp; Folgen</h3><p>${esc(c.toll)}</p></div>` : ""}
+      <div class="sec"><h3>Brennpunkte</h3><p>${c.points.map(x => esc(x.n)).join(" · ")}</p></div>
+      ${where.length ? `<div class="sec"><h3>Betroffene Länder</h3><p>${where.map(esc).join(", ")}</p></div>` : ""}
+      ${related.length ? `<div class="sec"><h3>Weitere Konflikte hier</h3><div class="rel">${related.map(r =>
+        `<button type="button" data-id="${r.id}"><span class="dot" style="background:${colorOf(r)}"></span>${esc(r.name)}</button>`).join("")}</div></div>` : ""}
+    </div>${CREDITS}`;
+  }
+
+  function showList() {
+    selected = null;
+    detailEl.hidden = true; listEl.hidden = false;
+    panel.classList.remove("has-detail");
+    try { if (location.hash) history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* Hash bleibt stehen */ }
+    refreshGlobe();
+  }
+
+  function select(id, opts) {
+    const c = byId[id];
+    if (!c) return;
+    if (!active.has(c.type)) { active.add(c.type); renderFilters(); renderStats(); renderList(); }
+    selected = c;
+    renderDetail(c);
+    listEl.hidden = true; detailEl.hidden = false; detailEl.scrollTop = 0;
+    panel.classList.add("has-detail");
+    if (!opts || !opts.fromHash) { try { history.replaceState(null, "", "#" + id); } catch (e) { /* ignorieren */ } }
+    stopRotate();
+    flyTo(c);
+    refreshGlobe();
+  }
+
+  $("#filters").addEventListener("click", e => {
+    const b = e.target.closest(".chip"); if (!b) return;
+    const k = b.dataset.type;
+    active.has(k) ? active.delete(k) : active.add(k);
+    if (selected && !active.has(selected.type)) showList();
+    renderFilters(); renderStats(); renderList(); refreshGlobe();
+  });
+  listEl.addEventListener("click", e => { const b = e.target.closest(".item"); if (b) select(b.dataset.id); });
+  detailEl.addEventListener("click", e => {
+    if (e.target.closest("#back")) { showList(); return; }
+    const b = e.target.closest(".rel button"); if (b) select(b.dataset.id);
+  });
+  $("#handle").addEventListener("click", () => {
+    const tall = panel.classList.toggle("tall");
+    $("#handle").setAttribute("aria-label", tall ? "Liste verkleinern" : "Liste vergrössern");
+    setTimeout(() => { if (window.Globe) { layoutGlobe(); world.pointOfView(selected ? { altitude: Math.max(1.1, baseAltitude() * 0.68) } : { altitude: baseAltitude() }, 300); } }, 320);
+  });
+  window.addEventListener("hashchange", () => {
+    const id = location.hash.slice(1);
+    if (byId[id]) { if (!selected || selected.id !== id) select(id, { fromHash: true }); }
+    else if (selected) showList();
+  });
+
+  renderFilters(); renderStats(); renderList();
+
+  /* ================= Globus ================= */
+  const globeEl = $("#globe");
+  if (typeof Globe === "undefined") {
+    $("#loading").textContent = "Der 3D-Globus konnte nicht geladen werden. Die Liste links funktioniert trotzdem.";
+    return;
+  }
+
+  const world = new Globe(globeEl, { animateIn: !reduceMotion })
+    .backgroundImageUrl("stars.jpg")
+    .globeImageUrl("earth-day.jpg")
+    .bumpImageUrl("earth-bump.jpg")
+    .showAtmosphere(true)
+    .atmosphereColor("#7fb2ff")
+    .atmosphereAltitude(0.17)
+    .onGlobeReady(() => { $("#loading").hidden = true; });
+
+  // Datenpunkte
+  const allPoints = CONFLICTS.flatMap(c => c.points.map((p, i) => ({ c, p, primary: i === 0, lat: p.lat, lng: p.lng })));
+  const allArcs = CONFLICTS.flatMap(c => c.arcs.map(a => ({ c, startLat: a[0], startLng: a[1], endLat: a[2], endLng: a[3] })));
+
+  function tipConflict(c, place) {
+    return `<div class="tt-h">${esc(c.name)}</div>` + (place ? `<div class="tt-s">${esc(place)}</div>` : "") +
+      `<div class="tt-r"><span class="dot" style="background:${colorOf(c)}"></span>${esc(TYPES[c.type].label)} · ${esc(c.status)}</div>`;
+  }
+
+  function polyInfo(f) {
+    const th = (theatreOf[f.id] || []).filter(visible).sort(sortConf);
+    const inv = (involvedOf[f.id] || []).filter(visible).sort(sortConf);
+    return { th, inv, top: th[0] || null, topInv: inv[0] || null };
+  }
+
+  function refreshGlobe() {
+    refreshPolygons();
+    refreshLayers();
+  }
+
+  function refreshPolygons() {
+    const sel = selected;
+    const selCountries = new Set(sel ? sel.countries : []);
+    const selInvolved = new Set(sel ? sel.involved : []);
+
+    world
+      .polygonAltitude(f => {
+        const { top } = polyInfo(f);
+        let a = top ? 0.009 : 0.004;
+        if (selCountries.has(f.id)) a = 0.028;
+        if (f === hoverPoly && (top || polyInfo(f).topInv)) a += 0.01;
+        return a;
+      })
+      .polygonCapColor(f => {
+        const { top } = polyInfo(f);
+        if (selCountries.has(f.id)) return rgba(colorOf(sel), 0.72);
+        if (!top) return "rgba(0,0,0,0)";
+        const alpha = [0, 0.26, 0.4, 0.55][top.level] * (sel ? 0.55 : 1);
+        return rgba(colorOf(top), f === hoverPoly ? Math.min(alpha + 0.2, 0.8) : alpha);
+      })
+      .polygonSideColor(f => {
+        const { top } = polyInfo(f);
+        if (selCountries.has(f.id)) return rgba(colorOf(sel), 0.35);
+        return top ? rgba(colorOf(top), 0.18) : "rgba(0,0,0,0)";
+      })
+      .polygonStrokeColor(f => {
+        const { top, topInv } = polyInfo(f);
+        if (selCountries.has(f.id) || selInvolved.has(f.id)) return rgba(colorOf(sel), 1);
+        if (top) return rgba(colorOf(top), sel ? 0.5 : 0.9);
+        if (topInv) return rgba(colorOf(topInv), sel ? 0.35 : 0.75);
+        return "rgba(220,230,245,0.14)";
+      })
+      .polygonLabel(f => {
+        const { th, inv } = polyInfo(f);
+        if (!th.length && !inv.length) return "";
+        const name = NAMES[f.id] || f.properties.n;
+        let h = `<div class="tt-h">${esc(name)}</div>`;
+        th.forEach(c => { h += `<div class="tt-r"><span class="dot" style="background:${colorOf(c)}"></span>${esc(c.name)}</div>`; });
+        inv.forEach(c => { h += `<div class="tt-r"><span class="dot" style="box-shadow:inset 0 0 0 1.5px ${colorOf(c)}"></span>beteiligt: ${esc(c.name)}</div>`; });
+        return h;
+      });
+  }
+
+  function refreshLayers() {
+    const sel = selected;
+    const pts = allPoints.filter(d => visible(d.c));
+    world
+      .pointsData(pts)
+      .pointColor(d => (sel && d.c !== sel) ? rgba(colorOf(d.c), 0.45) : colorOf(d.c))
+      .pointAltitude(d => d.c === sel ? 0.06 : 0.015)
+      .pointRadius(d => (d.c === sel ? 0.55 : 0.28 + d.c.level * 0.07))
+      .pointLabel(d => tipConflict(d.c, d.p.n));
+
+    world.ringsData(reduceMotion ? [] : pts.filter(d => d.primary || d.c.level >= 2 || d.c === sel));
+
+    world
+      .arcsData(allArcs.filter(d => visible(d.c) && (!sel || d.c === sel)))
+      .arcColor(d => [rgba(colorOf(d.c), 0.15), rgba(colorOf(d.c), 0.95)])
+      .arcStroke(d => d.c === sel ? 0.9 : 0.45)
+      .arcLabel(d => tipConflict(d.c, "Angriffe / Unterstützung von aussen"));
+  }
+
+  world
+    .polygonsTransitionDuration(250)
+    .pointsMerge(false)
+    .pointResolution(16)
+    .ringColor(d => t => rgba(colorOf(d.c), Math.max(0, 0.85 * (1 - t))))
+    .ringMaxRadius(d => (d.c === selected ? 5 : 1.4 + d.c.level * 1.1))
+    .ringPropagationSpeed(d => 1 + d.c.level * 0.4)
+    .ringRepeatPeriod(d => 2400 - d.c.level * 350)
+    .ringAltitude(0.012)
+    .arcAltitudeAutoScale(0.35)
+    .arcDashLength(0.45)
+    .arcDashGap(0.25)
+    .arcDashInitialGap(() => Math.random())
+    .arcDashAnimateTime(reduceMotion ? 0 : 2600)
+    .onPolygonHover(f => {
+      hoverPoly = f || null;
+      refreshPolygons();
+    })
+    .onPolygonClick(f => {
+      const { top, topInv } = polyInfo(f);
+      const c = top || topInv;
+      if (c) select(c.id);
+    })
+    .onPointClick(d => select(d.c.id))
+    .onArcClick(d => select(d.c.id))
+    .onGlobeClick(() => { if (selected) showList(); });
+
+  fetch("countries.json")
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(geo => { world.polygonsData(geo.features); refreshGlobe(); })
+    .catch(() => { refreshGlobe(); });
+
+  /* Kamera, Grösse, Rotation */
+  const controls = world.controls();
+  controls.autoRotate = !reduceMotion;
+  controls.autoRotateSpeed = 0.35;
+  controls.enableDamping = true;
+  function stopRotate() { controls.autoRotate = false; }
+  globeEl.addEventListener("pointerdown", stopRotate);
+  globeEl.addEventListener("wheel", stopRotate, { passive: true });
+
+  function sheetOffset() { return isMobile() ? panel.getBoundingClientRect().height : 0; }
+  function layoutGlobe() {
+    const w = window.innerWidth, h = window.innerHeight;
+    world.width(w).height(h);
+    if (isMobile()) world.globeOffset([0, -sheetOffset() / 2]);
+    else world.globeOffset([(panel.getBoundingClientRect().right) / 2, 0]);
+  }
+  // Kamerahöhe so wählen, dass der Globus den freien Bereich zu ~80 % füllt
+  function baseAltitude() {
+    const H = window.innerHeight;
+    const w = window.innerWidth - (isMobile() ? 0 : panel.getBoundingClientRect().right);
+    const h = H - sheetOffset();
+    const targetR = Math.min(w, h) * 0.41;
+    const fov = (world.camera().fov || 50) * Math.PI / 180;
+    const theta = Math.atan(targetR / (H / 2) * Math.tan(fov / 2));
+    return Math.min(8, Math.max(1.4, 1 / Math.sin(theta) - 1));
+  }
+  function flyTo(c) {
+    const p = c.points[0];
+    const alt = Math.max(1.1, baseAltitude() * 0.68);
+    world.pointOfView({ lat: p.lat, lng: p.lng, altitude: alt }, reduceMotion ? 0 : 1300);
+  }
+
+  window.addEventListener("resize", layoutGlobe);
+  layoutGlobe();
+  world.pointOfView({ lat: 18, lng: 28, altitude: baseAltitude() }, 0);
+
+  /* Tag / Nacht */
+  const texBtns = { day: $("#tex-day"), night: $("#tex-night") };
+  function setTex(mode) {
+    world.globeImageUrl(mode === "night" ? "earth-night.jpg" : "earth-day.jpg");
+    texBtns.day.setAttribute("aria-pressed", String(mode === "day"));
+    texBtns.night.setAttribute("aria-pressed", String(mode === "night"));
+    try { localStorage.setItem("konflikte-tex", mode); } catch (e) { /* ohne Speicher weiter */ }
+  }
+  texBtns.day.addEventListener("click", () => setTex("day"));
+  texBtns.night.addEventListener("click", () => setTex("night"));
+  try { if (localStorage.getItem("konflikte-tex") === "night") setTex("night"); } catch (e) { /* ignorieren */ }
+
+  refreshGlobe();
+  const startId = location.hash.slice(1);
+  if (byId[startId]) setTimeout(() => select(startId, { fromHash: true }), 400);
+})();
+</script>
+</body>
+</html>
