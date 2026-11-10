@@ -5,31 +5,39 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Konflikte der Welt</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="Interaktiver 3D-Globus mit den bewaffneten Konflikten der Welt, Stand November 2026.">
+<meta name="description" content="Interaktiver 3D-Globus mit den bewaffneten Konflikten der Welt, heute und auf einer Zeitreise zurück bis 1900.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
-  /* Layout: Globus füllt den Bildschirm; links ein schwebendes Lagebild-Panel (Desktop), unten ein Sheet (Handy). */
+  /* Layout: Globus füllt den Bildschirm. Desktop: Lagebild-Panel links, Zeitleiste unten.
+     Handy: Zeitleiste oben, Panel als Sheet unten, Globus dazwischen. */
   :root {
     --space: #04060b;
     --panel: rgba(9, 12, 19, 0.80);
     --panel-solid: #0a0e16;
     --raise: rgba(255, 255, 255, 0.05);
-    --raise-2: rgba(255, 255, 255, 0.09);
+    --raise-2: rgba(255, 255, 255, 0.10);
     --line: rgba(200, 214, 236, 0.11);
     --fg: #e8ecf3;
+    --soft: #cdd4df;
     --muted: #97a2b5;
     --faint: #5f6a7c;
     --focus: #8cc8ff;
+    --time: #8cc8ff;
     --war: #ff4a5a;
     --civil: #ff9136;
     --insurg: #f2c94c;
     --crime: #b58cff;
+    --colonial: #4fd1c5;
     --f-display: "Archivo", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
     --f-body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
     --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
     --panel-w: 384px;
+    --edge-l: max(16px, env(safe-area-inset-left, 0px));
+    --edge-r: max(16px, env(safe-area-inset-right, 0px));
+    --edge-t: max(16px, env(safe-area-inset-top, 0px));
+    --edge-b: max(16px, env(safe-area-inset-bottom, 0px));
     color-scheme: dark;
   }
   html, body { height: 100%; }
@@ -47,69 +55,53 @@
   #app { position: relative; height: 100%; }
   #globe { position: absolute; inset: 0; }
   #globe canvas { outline: none; }
-
-  /* ---------- Panel ---------- */
-  #panel {
-    position: absolute;
-    z-index: 5;
-    top: max(16px, env(safe-area-inset-top, 0px));
-    bottom: max(16px, env(safe-area-inset-bottom, 0px));
-    left: max(16px, env(safe-area-inset-left, 0px));
-    width: var(--panel-w);
-    display: flex;
-    flex-direction: column;
+  .glass {
     background: var(--panel);
     backdrop-filter: blur(14px) saturate(1.2);
     -webkit-backdrop-filter: blur(14px) saturate(1.2);
     border: 1px solid var(--line);
-    border-radius: 14px;
-    overflow: hidden;
+  }
+
+  /* ---------- Panel ---------- */
+  #panel {
+    position: absolute; z-index: 5;
+    top: var(--edge-t); bottom: var(--edge-b); left: var(--edge-l);
+    width: var(--panel-w);
+    display: flex; flex-direction: column;
+    border-radius: 14px; overflow: hidden;
   }
   .ph { padding: 18px 20px 14px; border-bottom: 1px solid var(--line); display: grid; gap: 10px; }
   .eyebrow {
-    font-family: var(--f-mono);
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--muted);
-    display: flex; align-items: center; gap: 8px;
+    font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); display: flex; align-items: center; gap: 8px;
   }
-  .live { width: 7px; height: 7px; border-radius: 50%; background: var(--war); box-shadow: 0 0 0 0 rgba(255,74,90,.6); animation: live 2s infinite; }
+  .live { width: 7px; height: 7px; border-radius: 50%; background: var(--war); animation: live 2s infinite; }
+  .clock { width: 12px; height: 12px; color: var(--time); flex: none; }
   @keyframes live { 0% { box-shadow: 0 0 0 0 rgba(255,74,90,.55); } 70% { box-shadow: 0 0 0 8px rgba(255,74,90,0); } 100% { box-shadow: 0 0 0 0 rgba(255,74,90,0); } }
   h1 {
-    margin: 0;
-    font-family: var(--f-display);
-    font-stretch: 78%;
-    font-weight: 800;
-    font-size: 34px;
-    line-height: 1;
-    letter-spacing: -0.01em;
-    text-transform: uppercase;
-    text-wrap: balance;
+    margin: 0; font-family: var(--f-display); font-stretch: 78%; font-weight: 800;
+    font-size: 34px; line-height: 1; letter-spacing: -0.01em; text-transform: uppercase; text-wrap: balance;
   }
   .stats { display: flex; gap: 18px; font-variant-numeric: tabular-nums; }
   .stat b { display: block; font-family: var(--f-display); font-stretch: 85%; font-weight: 700; font-size: 22px; line-height: 1.1; }
   .stat span { font-size: 11px; color: var(--muted); letter-spacing: 0.02em; }
   .filters { display: flex; flex-wrap: wrap; gap: 6px; }
   .chip {
-    appearance: none; border: 1px solid var(--line); background: var(--raise);
-    color: var(--fg); font: 500 12px/1 var(--f-body);
-    padding: 7px 10px 7px 8px; border-radius: 999px; cursor: pointer;
-    display: inline-flex; align-items: center; gap: 6px;
-    transition: background .15s, opacity .15s, border-color .15s;
+    appearance: none; border: 1px solid var(--line); background: var(--raise); color: var(--fg);
+    font: 500 12px/1 var(--f-body); padding: 7px 10px 7px 8px; border-radius: 999px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px; transition: background .15s, opacity .15s;
   }
   .chip:hover { background: var(--raise-2); }
   .chip[aria-pressed="false"] { opacity: .45; }
   .chip[aria-pressed="false"] .dot { background: transparent !important; box-shadow: inset 0 0 0 1.5px currentColor; }
-  .chip .n { font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+  .chip .n { font-family: var(--f-mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .chip .n.zero { color: var(--faint); }
   .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
-
   .scroll { flex: 1; overflow-y: auto; overscroll-behavior: contain; min-height: 0; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.15) transparent; }
 
   /* ---------- Liste ---------- */
   .group-h {
-    position: sticky; top: 0; z-index: 1;
-    padding: 10px 20px 6px;
+    position: sticky; top: 0; z-index: 1; padding: 10px 20px 6px;
     background: linear-gradient(var(--panel-solid) 70%, rgba(10,14,22,0));
     font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--faint);
     display: flex; align-items: center; gap: 8px;
@@ -120,8 +112,7 @@
   .bars[data-l="1"] i:nth-child(-n+1), .bars[data-l="2"] i:nth-child(-n+2), .bars[data-l="3"] i:nth-child(-n+3) { opacity: 1; }
   .item {
     appearance: none; width: 100%; text-align: left; background: none; border: 0; color: inherit; cursor: pointer;
-    display: grid; grid-template-columns: 22px 1fr auto; gap: 2px 10px; align-items: center;
-    padding: 9px 20px; font: inherit;
+    display: grid; grid-template-columns: 22px 1fr auto; gap: 2px 10px; align-items: center; padding: 9px 20px; font: inherit;
   }
   .item:hover { background: var(--raise); }
   .item .mk { grid-row: span 2; justify-self: center; position: relative; width: 14px; height: 14px; }
@@ -129,38 +120,33 @@
   .item .mk::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 1.5px solid var(--c); opacity: .5; }
   .item .nm { font-weight: 600; font-size: 14px; line-height: 1.25; min-width: 0; }
   .item .st { grid-column: 2; font-size: 12px; color: var(--muted); min-width: 0; }
-  .item .yr { grid-row: 1 / span 2; grid-column: 3; font-family: var(--f-mono); font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }
-  .empty { padding: 24px 20px; color: var(--muted); }
+  .item .yr { grid-row: 1 / span 2; grid-column: 3; font-family: var(--f-mono); font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .empty { padding: 24px 20px; color: var(--muted); margin: 0; }
 
   /* ---------- Detail ---------- */
   .detail-in { padding: 14px 20px 22px; display: grid; gap: 14px; }
   .back {
     appearance: none; background: none; border: 0; color: var(--muted); font: 500 13px var(--f-body);
-    padding: 4px 0; cursor: pointer; justify-self: start; display: inline-flex; gap: 6px; align-items: center;
+    padding: 4px 0; cursor: pointer; justify-self: start;
   }
   .back:hover { color: var(--fg); }
   .tags { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
   .tag {
-    display: inline-flex; align-items: center; gap: 6px;
-    font: 500 11.5px/1 var(--f-body); padding: 6px 9px; border-radius: 6px;
-    background: var(--raise); border: 1px solid var(--line); color: var(--fg);
+    display: inline-flex; align-items: center; gap: 6px; font: 500 11.5px/1 var(--f-body);
+    padding: 6px 9px; border-radius: 6px; background: var(--raise); border: 1px solid var(--line); color: var(--fg);
   }
   .tag.type { color: var(--c); border-color: color-mix(in srgb, var(--c) 45%, transparent); background: color-mix(in srgb, var(--c) 12%, transparent); }
   .tag .bars { color: var(--c); }
-  .d-title {
-    margin: 0; font-family: var(--f-display); font-stretch: 80%; font-weight: 800; font-size: 30px; line-height: 1.02;
-    letter-spacing: -0.005em; text-wrap: balance;
-  }
+  .tag.yrs { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+  .d-title { margin: 0; font-family: var(--f-display); font-stretch: 80%; font-weight: 800; font-size: 30px; line-height: 1.02; text-wrap: balance; }
   .coords { font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 14px; }
-  .lead { margin: 0; font-size: 15px; line-height: 1.55; color: var(--fg); }
+  .lead { margin: 0; font-size: 15px; line-height: 1.55; }
   .sec { display: grid; gap: 6px; }
-  .sec h3 {
-    margin: 0; font-family: var(--f-mono); font-weight: 500; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--faint);
-  }
-  .sec p { margin: 0; color: #cdd4df; line-height: 1.55; }
+  .sec h3 { margin: 0; font-family: var(--f-mono); font-weight: 500; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
+  .sec p { margin: 0; color: var(--soft); line-height: 1.55; }
   .news { border-left: 2px solid var(--c); padding: 2px 0 2px 12px; }
   .parties { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
-  .parties li { display: flex; gap: 8px; color: #cdd4df; }
+  .parties li { display: flex; gap: 8px; color: var(--soft); }
   .parties li::before { content: ""; flex: none; width: 5px; height: 5px; margin-top: 8px; border-radius: 1px; background: var(--faint); }
   .rel { display: flex; flex-wrap: wrap; gap: 6px; }
   .rel button {
@@ -169,47 +155,81 @@
     display: inline-flex; align-items: center; gap: 6px;
   }
   .rel button:hover { background: var(--raise-2); }
-
   .credits { margin: 0; padding: 14px 20px 18px; border-top: 1px solid var(--line); font-size: 11px; line-height: 1.5; color: var(--faint); }
-  .detail-in + .credits { margin-top: 4px; }
 
-  /* ---------- Overlays rechts ---------- */
-  .hud {
-    position: absolute; z-index: 4;
-    right: max(16px, env(safe-area-inset-right, 0px));
-    bottom: max(16px, env(safe-area-inset-bottom, 0px));
-    display: grid; gap: 10px; justify-items: end;
+  /* ---------- Zeitleiste ---------- */
+  #timeline {
+    position: absolute; z-index: 5;
+    left: calc(var(--edge-l) + var(--panel-w) + 16px); right: var(--edge-r); bottom: var(--edge-b);
+    border-radius: 14px; padding: 12px 16px 8px; display: grid; gap: 8px;
   }
-  .legend, .seg {
-    background: var(--panel); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-    border: 1px solid var(--line); border-radius: 10px;
+  .tl-head { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .tl-year { display: grid; line-height: 1; min-width: 104px; }
+  .tl-k { font-family: var(--f-mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); margin-bottom: 3px; }
+  .tl-k.past { color: var(--time); }
+  #year-out { font-family: var(--f-display); font-stretch: 80%; font-weight: 800; font-size: 40px; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  .tl-btn {
+    appearance: none; border: 1px solid var(--line); background: var(--raise); color: var(--fg); cursor: pointer;
+    height: 36px; min-width: 36px; padding: 0 12px; border-radius: 999px; font: 500 12.5px var(--f-body);
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex: none;
   }
-  .legend { padding: 10px 12px; display: grid; gap: 6px; font-size: 12px; color: var(--muted); }
+  .tl-btn:hover { background: var(--raise-2); }
+  .tl-btn svg { width: 14px; height: 14px; }
+  #play { padding: 0; width: 36px; }
+  #play[aria-pressed="true"] { background: var(--fg); color: var(--space); }
+  #now .m { display: none; }
+  .tl-jumps { display: flex; gap: 2px; flex-wrap: wrap; min-width: 0; }
+  .tl-jumps button {
+    appearance: none; border: 0; background: none; color: var(--muted); cursor: pointer;
+    font: 500 12px var(--f-body); padding: 6px 8px; border-radius: 7px; white-space: nowrap;
+  }
+  .tl-jumps button:hover { color: var(--fg); background: var(--raise); }
+  .tl-jumps button b { font-family: var(--f-mono); font-weight: 500; font-size: 11px; color: var(--faint); margin-left: 5px; }
+  .seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 10px; background: var(--raise); border: 1px solid var(--line); margin-left: auto; flex: none; }
+  .seg button { appearance: none; border: 0; background: none; color: var(--muted); cursor: pointer; font: 500 12px var(--f-body); padding: 5px 9px; border-radius: 7px; }
+  .seg button[aria-pressed="true"] { background: var(--raise-2); color: var(--fg); }
+  .tl-track { position: relative; height: 38px; }
+  #hist { position: absolute; left: 6px; right: 6px; top: 0; width: calc(100% - 12px); height: 38px; display: block; }
+  #year {
+    position: absolute; left: 0; right: 0; top: 0; width: 100%; height: 38px; margin: 0;
+    -webkit-appearance: none; appearance: none; background: transparent; cursor: ew-resize;
+  }
+  #year::-webkit-slider-runnable-track { height: 38px; background: transparent; }
+  #year::-moz-range-track { height: 38px; background: transparent; }
+  #year::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none; width: 12px; height: 38px; border: 0; border-radius: 3px;
+    background: linear-gradient(90deg, transparent 4px, var(--fg) 4px, var(--fg) 8px, transparent 8px);
+  }
+  #year::-moz-range-thumb {
+    width: 12px; height: 38px; border: 0; border-radius: 3px;
+    background: linear-gradient(90deg, transparent 4px, var(--fg) 4px, var(--fg) 8px, transparent 8px);
+  }
+  #year:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; border-radius: 4px; }
+  .tl-ticks { position: relative; height: 13px; margin: 0 6px; font-family: var(--f-mono); font-size: 10px; color: var(--faint); font-variant-numeric: tabular-nums; }
+  .tl-ticks span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+  .tl-ticks span:first-child { transform: none; }
+  .tl-ticks span:last-child { transform: translateX(-100%); }
+
+  /* ---------- Legende ---------- */
+  .legend {
+    position: absolute; z-index: 4; right: var(--edge-r); top: var(--edge-t);
+    border-radius: 10px; padding: 10px 12px; display: grid; gap: 6px; font-size: 12px; color: var(--muted); max-width: 250px;
+  }
   .legend .row { display: flex; align-items: center; gap: 14px; }
   .legend .lv { display: inline-flex; align-items: center; gap: 6px; }
   .legend .ring { border-radius: 50%; border: 1.5px solid var(--fg); opacity: .8; }
   .legend .t { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
-  .seg { display: inline-flex; padding: 3px; gap: 2px; }
-  .seg button {
-    appearance: none; border: 0; background: none; color: var(--muted); cursor: pointer;
-    font: 500 12px var(--f-body); padding: 6px 10px; border-radius: 7px;
-  }
-  .seg button[aria-pressed="true"] { background: var(--raise-2); color: var(--fg); }
-  .sheet-handle { display: none; }
+  .legend .note { font-size: 11px; color: var(--faint); line-height: 1.4; }
 
+  .sheet-handle { display: none; }
   button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   .item:focus-visible { outline-offset: -2px; }
 
   /* globe.gl Tooltip */
   .float-tooltip-kap {
-    background: rgba(8, 11, 18, 0.92) !important;
-    border: 1px solid var(--line);
-    border-radius: 8px !important;
-    padding: 8px 10px !important;
-    font: 13px/1.4 var(--f-body) !important;
-    color: var(--fg) !important;
-    max-width: 260px;
-    box-shadow: 0 8px 24px rgba(0,0,0,.4);
+    background: rgba(8, 11, 18, 0.92) !important; border: 1px solid var(--line); border-radius: 8px !important;
+    padding: 8px 10px !important; font: 13px/1.4 var(--f-body) !important; color: var(--fg) !important;
+    max-width: 260px; box-shadow: 0 8px 24px rgba(0,0,0,.4);
   }
   .tt-h { font-weight: 600; }
   .tt-s { color: var(--muted); font-size: 12px; }
@@ -220,36 +240,59 @@
     font-family: var(--f-mono); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--faint);
   }
 
-  /* ---------- Handy: Panel wird zum Sheet ---------- */
+  /* ---------- Mittlere Breite ---------- */
+  @media (max-width: 1640px) and (min-width: 761px) {
+    .tl-jumps button b { display: none; }
+  }
+  @media (max-width: 1240px) and (min-width: 761px) {
+    .tl-jumps button[data-y="2015"] { display: none; }
+  }
+  @media (max-width: 1060px) and (min-width: 761px) {
+    :root { --panel-w: 330px; }
+    .tl-jumps { display: none; }
+    .legend { display: none; }
+  }
+
+  /* ---------- Handy ---------- */
   @media (max-width: 760px) {
     #panel {
-      top: auto; left: 0; right: 0; bottom: 0; width: auto;
-      height: 46%;
+      top: auto; left: 0; right: 0; bottom: 0; width: auto; height: 44%;
       border-radius: 16px 16px 0 0; border-left: 0; border-right: 0; border-bottom: 0;
-      padding-bottom: env(safe-area-inset-bottom, 0px);
-      transition: height .3s ease;
+      padding-bottom: env(safe-area-inset-bottom, 0px); transition: height .3s ease;
     }
-    #panel.tall { height: 82%; }
-    .sheet-handle {
-      display: flex; justify-content: center; appearance: none; background: none; border: 0; cursor: pointer;
-      padding: 8px 0 0; width: 100%;
-    }
+    #panel.tall { height: 80%; }
+    .sheet-handle { display: flex; justify-content: center; appearance: none; background: none; border: 0; cursor: pointer; padding: 8px 0 0; width: 100%; }
     .sheet-handle span { width: 38px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.25); }
-    .ph { padding: 6px max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px)); gap: 8px; }
+    .ph { padding: 6px var(--edge-r) 12px var(--edge-l); gap: 8px; }
     h1 { font-size: 24px; }
     .stats { gap: 14px; }
     .stat b { font-size: 17px; }
     .stat span { font-size: 10.5px; }
-    .filters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 calc(-1 * max(16px, env(safe-area-inset-right, 0px))) 0 calc(-1 * max(16px, env(safe-area-inset-left, 0px))); padding: 0 max(16px, env(safe-area-inset-right, 0px)) 2px max(16px, env(safe-area-inset-left, 0px)); }
+    .filters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 calc(-1 * var(--edge-r)) 0 calc(-1 * var(--edge-l)); padding: 0 var(--edge-r) 2px var(--edge-l); }
     .filters::-webkit-scrollbar { display: none; }
     .chip { flex: none; }
     #panel.has-detail .stats, #panel.has-detail .filters { display: none; }
-    .item, .group-h, .detail-in, .credits { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+    .item, .group-h, .detail-in, .credits { padding-left: var(--edge-l); padding-right: var(--edge-r); }
     .d-title { font-size: 26px; }
-    .hud {
-      bottom: auto;
-      top: max(12px, env(safe-area-inset-top, 0px));
+    #timeline {
+      left: max(10px, env(safe-area-inset-left, 0px)); right: max(10px, env(safe-area-inset-right, 0px));
+      top: max(10px, env(safe-area-inset-top, 0px)); bottom: auto;
+      padding: 8px 12px 6px; gap: 6px; border-radius: 12px;
     }
+    .tl-head { gap: 8px; }
+    .tl-year { min-width: 72px; }
+    #year-out { font-size: 28px; }
+    .tl-k { font-size: 9.5px; }
+    .tl-jumps { display: none; }
+    .tl-btn { height: 32px; min-width: 32px; padding: 0 10px; }
+    #play { width: 32px; }
+    #now .d { display: none; }
+    #now .m { display: inline; }
+    .tl-track, #hist, #year, #year::-webkit-slider-runnable-track { height: 28px; }
+    #year::-webkit-slider-thumb { height: 28px; }
+    #year::-moz-range-thumb { height: 28px; }
+    #year::-moz-range-track { height: 28px; }
+    .tl-ticks .opt { display: none; }
     .legend { display: none; }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -264,10 +307,10 @@
   <div id="globe" role="img" aria-label="Drehbarer 3D-Globus. Konfliktgebiete sind farbig markiert."></div>
   <div id="loading">Erde wird geladen …</div>
 
-  <aside id="panel" aria-label="Lagebild">
+  <aside id="panel" class="glass" aria-label="Lagebild">
     <button class="sheet-handle" id="handle" type="button" aria-label="Liste vergrössern"><span></span></button>
     <header class="ph">
-      <div class="eyebrow"><span class="live" aria-hidden="true"></span>Lagebild · Stand 10. November 2026</div>
+      <div class="eyebrow" id="eyebrow"></div>
       <h1>Konflikte der Welt</h1>
       <div class="stats" id="stats"></div>
       <div class="filters" id="filters" role="group" aria-label="Nach Art des Konflikts filtern"></div>
@@ -276,19 +319,45 @@
     <div class="scroll" id="detail" hidden></div>
   </aside>
 
-  <div class="hud">
-    <div class="seg" role="group" aria-label="Darstellung der Erde">
-      <button type="button" id="tex-day" aria-pressed="true">Tag</button>
-      <button type="button" id="tex-night" aria-pressed="false">Nacht</button>
-    </div>
-    <div class="legend" aria-hidden="true">
-      <span class="t">Intensität</span>
-      <div class="row">
-        <span class="lv"><span class="ring" style="width:16px;height:16px"></span>hoch</span>
-        <span class="lv"><span class="ring" style="width:11px;height:11px"></span>mittel</span>
-        <span class="lv"><span class="ring" style="width:7px;height:7px"></span>niedrig</span>
+  <section id="timeline" class="glass" aria-label="Zeitreise">
+    <div class="tl-head">
+      <div class="tl-year">
+        <span class="tl-k" id="year-k">Heute</span>
+        <output id="year-out" for="year">2026</output>
+      </div>
+      <button type="button" class="tl-btn" id="play" aria-pressed="false" aria-label="Zeitreise abspielen">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path id="play-ico" fill="currentColor" d="M4 2.5v11l9-5.5z"/></svg>
+      </button>
+      <button type="button" class="tl-btn" id="now" hidden><span class="d">Zurück zu heute</span><span class="m">Heute</span></button>
+      <div class="tl-jumps" role="group" aria-label="Zu einer Epoche springen">
+        <button type="button" data-y="1916">1. Weltkrieg<b>1916</b></button>
+        <button type="button" data-y="1943">2. Weltkrieg<b>1943</b></button>
+        <button type="button" data-y="1968">Kalter Krieg<b>1968</b></button>
+        <button type="button" data-y="1994">Nach dem Mauerfall<b>1994</b></button>
+        <button type="button" data-y="2015">Syrien & IS<b>2015</b></button>
+      </div>
+      <div class="seg" role="group" aria-label="Darstellung der Erde">
+        <button type="button" id="tex-day" aria-pressed="true">Tag</button>
+        <button type="button" id="tex-night" aria-pressed="false">Nacht</button>
       </div>
     </div>
+    <div class="tl-track">
+      <svg id="hist" viewBox="-0.5 0 127 38" preserveAspectRatio="none" aria-hidden="true"></svg>
+      <input type="range" id="year" min="1900" max="2026" step="1" value="2026" aria-label="Jahr wählen">
+    </div>
+    <div class="tl-ticks" aria-hidden="true">
+      <span style="left:0%">1900</span><span class="opt" style="left:11.11%">1914</span><span style="left:31.75%">1940</span><span class="opt" style="left:47.62%">1960</span><span style="left:63.49%">1980</span><span class="opt" style="left:79.37%">2000</span><span style="left:100%">2026</span>
+    </div>
+  </section>
+
+  <div class="legend glass" aria-hidden="true">
+    <span class="t">Grösse der Ringe</span>
+    <div class="row">
+      <span class="lv"><span class="ring" style="width:16px;height:16px"></span>hoch</span>
+      <span class="lv"><span class="ring" style="width:11px;height:11px"></span>mittel</span>
+      <span class="lv"><span class="ring" style="width:7px;height:7px"></span>niedrig</span>
+    </div>
+    <span class="note" id="legend-note"></span>
   </div>
 </div>
 
@@ -297,32 +366,52 @@
 (function () {
   "use strict";
 
-  /* ================= Daten ================= */
+  /* ======================================================================
+     Daten
+     countries = Schauplatz (eingefärbt), involved = beteiligt (nur Umriss)
+     arcs = [vonLat, vonLng, nachLat, nachLng]
+     level: aktuell = Heftigkeit heute; Vergangenheit = Todesopfer
+            (3: ab 100’000, 2: ab 10’000, 1: weniger)
+     ====================================================================== */
+  const NOW_YEAR = 2026, MIN_YEAR = 1900;
+
   const TYPES = {
-    war:    { label: "Krieg",            long: "Krieg zwischen Staaten / grenzüberschreitend", color: "#ff4a5a" },
-    civil:  { label: "Bürgerkrieg",      long: "Bürgerkrieg",                                  color: "#ff9136" },
-    insurg: { label: "Aufstand & Terror", long: "Aufstand & Terror",                           color: "#f2c94c" },
-    crime:  { label: "Bandengewalt",     long: "Banden- & Kartellgewalt",                      color: "#b58cff" }
+    war:      { label: "Krieg",                long: "Krieg zwischen Staaten / grenzüberschreitend", color: "#ff4a5a" },
+    civil:    { label: "Bürgerkrieg",          long: "Bürgerkrieg",                                  color: "#ff9136" },
+    insurg:   { label: "Aufstand & Terror",    long: "Aufstand & Terror",                            color: "#f2c94c" },
+    crime:    { label: "Bandengewalt",         long: "Banden- & Kartellgewalt",                      color: "#b58cff" },
+    colonial: { label: "Unabhängigkeitskrieg", long: "Kolonial- & Unabhängigkeitskrieg",             color: "#4fd1c5" }
   };
   const LEVEL = { 3: "Hohe Intensität", 2: "Mittlere Intensität", 1: "Niedrige Intensität" };
   const LEVEL_SHORT = { 3: "hoch", 2: "mittel", 1: "niedrig" };
 
-  // ISO-3166 numerisch → deutscher Name (nur für betroffene Länder nötig)
   const NAMES = {
-    "804": "Ukraine", "643": "Russland", "364": "Iran", "376": "Israel", "275": "Palästina", "422": "Libanon",
-    "586": "Pakistan", "004": "Afghanistan", "356": "Indien", "729": "Sudan", "231": "Äthiopien", "232": "Eritrea",
-    "887": "Jemen", "682": "Saudi-Arabien", "104": "Myanmar", "180": "DR Kongo", "646": "Ruanda", "466": "Mali",
-    "854": "Burkina Faso", "562": "Niger", "566": "Nigeria", "706": "Somalia", "728": "Südsudan", "760": "Syrien",
-    "332": "Haiti", "484": "Mexiko", "170": "Kolumbien", "862": "Venezuela", "764": "Thailand", "116": "Kambodscha",
-    "508": "Mosambik", "120": "Kamerun", "140": "Zentralafrikanische Republik", "218": "Ecuador", "840": "USA"
+    AFG: "Afghanistan", AGO: "Angola", ALB: "Albanien", ARE: "Vereinigte Arabische Emirate", ARG: "Argentinien", ARM: "Armenien",
+    AUS: "Australien", AUT: "Österreich", AZE: "Aserbaidschan", BDI: "Burundi", BEL: "Belgien", BEN: "Benin", BFA: "Burkina Faso",
+    BGD: "Bangladesch", BGR: "Bulgarien", BIH: "Bosnien und Herzegowina", BLR: "Belarus", BOL: "Bolivien", CAF: "Zentralafrikanische Republik",
+    CAN: "Kanada", CHN: "China", CMR: "Kamerun", COD: "DR Kongo", COL: "Kolumbien", CUB: "Kuba", CYP: "Zypern", CZE: "Tschechien",
+    DEU: "Deutschland", DNK: "Dänemark", DZA: "Algerien", ECU: "Ecuador", EGY: "Ägypten", ERI: "Eritrea", ESH: "Westsahara", ESP: "Spanien",
+    EST: "Estland", ETH: "Äthiopien", FIN: "Finnland", FLK: "Falklandinseln", FRA: "Frankreich", GBR: "Grossbritannien", GEO: "Georgien",
+    GNB: "Guinea-Bissau", GRC: "Griechenland", GTM: "Guatemala", HRV: "Kroatien", HTI: "Haiti", HUN: "Ungarn", IDN: "Indonesien",
+    IND: "Indien", IRL: "Irland", IRN: "Iran", IRQ: "Irak", ISR: "Israel", ITA: "Italien", JOR: "Jordanien", JPN: "Japan",
+    KEN: "Kenia", KHM: "Kambodscha", KOR: "Südkorea", KWT: "Kuwait", LAO: "Laos", LBN: "Libanon", LBR: "Liberia", LBY: "Libyen",
+    LKA: "Sri Lanka", LTU: "Litauen", LUX: "Luxemburg", LVA: "Lettland", MAR: "Marokko", MDA: "Moldau", MEX: "Mexiko",
+    MKD: "Nordmazedonien", MLI: "Mali", MMR: "Myanmar", MNE: "Montenegro", MOZ: "Mosambik", MRT: "Mauretanien", MYS: "Malaysia",
+    NAM: "Namibia", NCY: "Nordzypern", NER: "Niger", NGA: "Nigeria", NIC: "Nicaragua", NLD: "Niederlande", NOR: "Norwegen",
+    NPL: "Nepal", NZL: "Neuseeland", PAK: "Pakistan", PER: "Peru", PHL: "Philippinen", PNG: "Papua-Neuguinea", POL: "Polen",
+    PRK: "Nordkorea", PRT: "Portugal", PRY: "Paraguay", PSE: "Palästina", ROU: "Rumänien", RUS: "Russland", RWA: "Ruanda",
+    SAU: "Saudi-Arabien", SDN: "Sudan", SLB: "Salomonen", SLE: "Sierra Leone", SLV: "El Salvador", SOL: "Somaliland", SOM: "Somalia",
+    SRB: "Serbien", SSD: "Südsudan", SVK: "Slowakei", SVN: "Slowenien", SYR: "Syrien", TJK: "Tadschikistan", THA: "Thailand",
+    TLS: "Osttimor", TUN: "Tunesien", TUR: "Türkei", TZA: "Tansania", UGA: "Uganda", UKR: "Ukraine", USA: "USA", VEN: "Venezuela",
+    VNM: "Vietnam", XKX: "Kosovo", YEM: "Jemen", ZAF: "Südafrika", ZWE: "Simbabwe"
   };
 
-  // countries = Schauplatz (eingefärbt), involved = beteiligt (nur Umriss), arcs = [vonLat, vonLng, nachLat, nachLng]
-  const CONFLICTS = [
+  // ---------- Heute (Stand 10. November 2026) ----------
+  const NOW = [
     {
-      id: "ukraine", name: "Russland – Ukraine", type: "war", level: 3,
+      id: "ukraine", name: "Russland – Ukraine", type: "war", level: 3, from: 2022,
       status: "Aktiv · Gespräche in Abu Dhabi", since: "2022", sinceLong: "Februar 2022 (im Donbas seit 2014)",
-      countries: ["804"], involved: ["643"],
+      countries: ["UKR"], involved: ["RUS"],
       points: [{ n: "Front im Donbas", lat: 48.3, lng: 37.8 }, { n: "Front bei Saporischschja", lat: 47.45, lng: 35.9 }, { n: "Kiew (Luftangriffe)", lat: 50.45, lng: 30.52 }],
       arcs: [[55.75, 37.62, 48.3, 37.8]],
       parties: ["Russland", "Ukraine (unterstützt von europäischen Staaten und den USA)"],
@@ -331,9 +420,9 @@
       toll: "Hunderttausende Tote und Verwundete auf beiden Seiten (Schätzungen). Die UNO hat über 14’000 getötete Zivilpersonen erfasst."
     },
     {
-      id: "iran", name: "Iran-Krieg (USA & Israel – Iran)", type: "war", level: 2,
+      id: "iran", name: "Iran-Krieg (USA & Israel – Iran)", type: "war", level: 2, from: 2026,
       status: "Kampfpause · kein Frieden", since: "2026", sinceLong: "28. Februar 2026",
-      countries: ["364"], involved: ["840", "376"],
+      countries: ["IRN"], involved: ["USA", "ISR"],
       points: [{ n: "Teheran", lat: 35.69, lng: 51.39 }, { n: "Strasse von Hormus", lat: 26.57, lng: 56.25 }],
       arcs: [[38.9, -77.04, 35.69, 51.39], [32.08, 34.78, 35.69, 51.39], [35.69, 51.39, 32.08, 34.78]],
       parties: ["USA", "Israel", "Iran", "Iran-nahe Milizen im Irak und im Libanon"],
@@ -342,9 +431,9 @@
       toll: "Laut iranischen Stellen zwischen 1’900 und 3’500 Tote im Iran, dazu Opfer in Israel, im Irak und in den Golfstaaten."
     },
     {
-      id: "gaza", name: "Israel – Gaza / Palästina", type: "war", level: 2,
+      id: "gaza", name: "Israel – Gaza / Palästina", type: "war", level: 2, from: 2023,
       status: "Brüchige Waffenruhe", since: "2023", sinceLong: "7. Oktober 2023",
-      countries: ["275"], involved: ["376"],
+      countries: ["PSE"], involved: ["ISR"],
       points: [{ n: "Gazastreifen", lat: 31.42, lng: 34.38 }, { n: "Westjordanland", lat: 32.0, lng: 35.25 }],
       arcs: [],
       parties: ["Israel", "Hamas und andere bewaffnete Gruppen"],
@@ -353,9 +442,9 @@
       toll: "Über 70’000 Tote im Gazastreifen laut dortigem Gesundheitsministerium; rund 1’200 Tote beim Angriff vom 7. Oktober in Israel."
     },
     {
-      id: "libanon", name: "Israel – Hisbollah (Libanon)", type: "war", level: 2,
+      id: "libanon", name: "Israel – Hisbollah (Libanon)", type: "war", level: 2, from: 2026,
       status: "Abkommen · Angriffe gehen weiter", since: "2026", sinceLong: "2. März 2026 (erneut)",
-      countries: ["422"], involved: ["376"],
+      countries: ["LBN"], involved: ["ISR"],
       points: [{ n: "Südlibanon", lat: 33.27, lng: 35.45 }],
       arcs: [[32.08, 34.78, 33.27, 35.45]],
       parties: ["Israel", "Hisbollah", "Libanesische Armee (soll die Hisbollah entwaffnen)"],
@@ -363,9 +452,9 @@
       news: "Ein von den USA vermitteltes Abkommen zwischen Israel und Libanon vom Juni lehnt die Hisbollah ab. Israel fliegt weiter fast täglich Angriffe im Süden; Anfang November starben bei einem Angriff auf ein Auto drei Mädchen und ihre Grossmutter."
     },
     {
-      id: "pakistan-afghanistan", name: "Pakistan – Afghanistan", type: "war", level: 2,
+      id: "pakistan-afghanistan", name: "Pakistan – Afghanistan", type: "war", level: 2, from: 2025,
       status: "Grenzkrieg", since: "2025", sinceLong: "Oktober 2025",
-      countries: ["004"], involved: ["586"],
+      countries: ["AFG"], involved: ["PAK"],
       points: [{ n: "Kunar", lat: 34.85, lng: 71.1 }, { n: "Helmand", lat: 31.6, lng: 64.4 }],
       arcs: [[33.69, 73.05, 34.85, 71.1]],
       parties: ["Pakistan", "Taliban-Regierung Afghanistans", "Pakistanische Taliban (TTP)"],
@@ -373,9 +462,9 @@
       news: "Nach einem Selbstmordanschlag im Nordwesten Pakistans im September flog Pakistan mehrere Angriffswellen, unter anderem am 1. Oktober in Kunar und Helmand. Laut UNO starben dabei mindestens 10 Zivilpersonen, die meisten davon Kinder. Ende Oktober beschossen die Taliban erneut pakistanisches Gebiet."
     },
     {
-      id: "pakistan", name: "Pakistan: TTP & Belutschistan", type: "insurg", level: 2,
+      id: "pakistan", name: "Pakistan: TTP & Belutschistan", type: "insurg", level: 2, from: 2007,
       status: "Aktiv", since: "2007", sinceLong: "2007 (TTP), Belutschistan seit 2004",
-      countries: ["586"], involved: [],
+      countries: ["PAK"], involved: [],
       points: [{ n: "Waziristan / Khyber Pakhtunkhwa", lat: 32.8, lng: 70.1 }, { n: "Belutschistan", lat: 29.0, lng: 66.2 }],
       arcs: [],
       parties: ["Pakistanische Armee", "Pakistanische Taliban (TTP)", "Belutschische Separatisten (u. a. BLA)"],
@@ -383,9 +472,9 @@
       news: "2025 war das tödlichste Jahr seit einem Jahrzehnt. Ein Anschlag im September 2026 löste die jüngsten pakistanischen Luftangriffe in Afghanistan aus."
     },
     {
-      id: "kaschmir", name: "Indien – Pakistan (Kaschmir)", type: "war", level: 1,
+      id: "kaschmir", name: "Indien – Pakistan (Kaschmir)", type: "war", level: 1, from: 2025,
       status: "Angespannt", since: "1947", sinceLong: "1947; Kurzkrieg im Mai 2025",
-      countries: [], involved: ["356", "586"],
+      countries: [], involved: ["IND", "PAK"],
       points: [{ n: "Kaschmir / Kontrolllinie", lat: 34.08, lng: 74.8 }],
       arcs: [],
       parties: ["Indien", "Pakistan", "Militante Gruppen in Kaschmir"],
@@ -393,9 +482,9 @@
       news: "Im Oktober 2026 bestellten beide Länder gegenseitig Diplomaten ein, nachdem Indien an der Grenze zwei Pakistaner getötet hatte."
     },
     {
-      id: "sudan", name: "Sudan", type: "civil", level: 3,
+      id: "sudan", name: "Sudan", type: "civil", level: 3, from: 2023,
       status: "Aktiver Krieg", since: "2023", sinceLong: "15. April 2023",
-      countries: ["729"], involved: [],
+      countries: ["SDN"], involved: [],
       points: [{ n: "Kordofan", lat: 13.18, lng: 30.22 }, { n: "Darfur / El Fasher", lat: 13.63, lng: 25.35 }],
       arcs: [],
       parties: ["Sudanesische Armee (SAF) und verbündete Gruppen", "Rapid Support Forces (RSF)"],
@@ -404,9 +493,9 @@
       toll: "Schätzungen reichen bis über 150’000 Tote. Rund 12 Millionen Menschen wurden vertrieben."
     },
     {
-      id: "tigray", name: "Äthiopien: Tigray & Eritrea", type: "civil", level: 3,
+      id: "tigray", name: "Äthiopien: Tigray & Eritrea", type: "civil", level: 3, from: 2026,
       status: "Neuer Krieg", since: "2026", sinceLong: "2026 (erneut; schon 2020–2022)",
-      countries: ["231"], involved: ["232"],
+      countries: ["ETH"], involved: ["ERI"],
       points: [{ n: "Mekelle, Tigray", lat: 13.5, lng: 39.47 }],
       arcs: [[15.32, 38.93, 13.5, 39.47]],
       parties: ["Äthiopische Bundesarmee und verbündete Tigray-Kräfte", "TPLF / Tigray-Streitkräfte", "Eritrea (Beteiligung umstritten)"],
@@ -415,9 +504,9 @@
       toll: "Im Krieg 2020–2022 starben nach Schätzungen Hunderttausende Menschen."
     },
     {
-      id: "amhara-oromia", name: "Äthiopien: Amhara & Oromia", type: "insurg", level: 2,
-      status: "Aktiv", since: "2023", sinceLong: "2023 (Amhara), Oromia seit 2018",
-      countries: ["231"], involved: [],
+      id: "amhara-oromia", name: "Äthiopien: Amhara & Oromia", type: "insurg", level: 2, from: 2018,
+      status: "Aktiv", since: "2018", sinceLong: "2018 (Oromia), Amhara seit 2023",
+      countries: ["ETH"], involved: [],
       points: [{ n: "Amhara", lat: 11.6, lng: 37.39 }, { n: "Oromia", lat: 9.1, lng: 36.0 }],
       arcs: [],
       parties: ["Äthiopische Bundesarmee", "Fano-Milizen (Amhara)", "Oromo-Befreiungsarmee (OLA)"],
@@ -425,9 +514,9 @@
       news: "Beide Aufstände sind ungelöst und laufen parallel zum neuen Krieg in Tigray weiter."
     },
     {
-      id: "jemen", name: "Jemen: Huthis – Regierung & Saudi-Arabien", type: "civil", level: 3,
+      id: "jemen", name: "Jemen: Huthis – Regierung & Saudi-Arabien", type: "civil", level: 3, from: 2014,
       status: "Eskalation", since: "2014", sinceLong: "2014; Saudi-Arabien greift seit 2015 ein",
-      countries: ["887"], involved: ["682"],
+      countries: ["YEM"], involved: ["SAU"],
       points: [{ n: "Marib", lat: 15.46, lng: 45.33 }, { n: "Taiz", lat: 13.58, lng: 44.02 }],
       arcs: [[15.37, 44.19, 24.71, 46.68], [24.71, 46.68, 15.46, 45.33]],
       parties: ["Huthis (Ansar Allah, vom Iran unterstützt)", "Jemenitische Regierung", "Saudi-Arabien"],
@@ -436,9 +525,9 @@
       toll: "Die UNO schätzte bis 2021 rund 377’000 Tote, durch Kämpfe und durch Hunger und Krankheiten."
     },
     {
-      id: "myanmar", name: "Myanmar", type: "civil", level: 3,
+      id: "myanmar", name: "Myanmar", type: "civil", level: 3, from: 2021,
       status: "Aktiver Krieg", since: "2021", sinceLong: "Militärputsch, 1. Februar 2021",
-      countries: ["104"], involved: [],
+      countries: ["MMR"], involved: [],
       points: [{ n: "Rakhine / Sittwe", lat: 20.15, lng: 92.9 }, { n: "Sagaing", lat: 22.0, lng: 95.6 }],
       arcs: [],
       parties: ["Militärjunta", "Arakan Army und weitere ethnische Armeen", "Volksverteidigungskräfte (PDF)"],
@@ -447,9 +536,9 @@
       toll: "Zehntausende Tote, über 3 Millionen Vertriebene."
     },
     {
-      id: "kongo", name: "DR Kongo: M23 & Ostkongo", type: "civil", level: 3,
+      id: "kongo", name: "DR Kongo: M23 & Ostkongo", type: "civil", level: 3, from: 2021,
       status: "Kämpfe trotz Abkommen", since: "2021", sinceLong: "2021 (M23), Konflikte seit den 1990ern",
-      countries: ["180"], involved: ["646"],
+      countries: ["COD"], involved: ["RWA"],
       points: [{ n: "Goma, Nord-Kivu", lat: -1.68, lng: 29.22 }, { n: "Süd-Kivu", lat: -3.4, lng: 29.14 }, { n: "Ituri", lat: 1.56, lng: 30.25 }],
       arcs: [[-1.95, 30.06, -1.68, 29.22]],
       parties: ["Kongolesische Armee und verbündete Milizen", "M23/AFC (von Ruanda unterstützt)", "ADF und über hundert weitere Gruppen"],
@@ -458,9 +547,9 @@
       toll: "Rund 7 Millionen Binnenvertriebene."
     },
     {
-      id: "sahel", name: "Sahel: Mali, Burkina Faso, Niger", type: "insurg", level: 3,
+      id: "sahel", name: "Sahel: Mali, Burkina Faso, Niger", type: "insurg", level: 3, from: 2012,
       status: "Aktiv", since: "2012", sinceLong: "2012 (Mali)",
-      countries: ["466", "854", "562"], involved: [],
+      countries: ["MLI", "BFA", "NER"], involved: [],
       points: [{ n: "Zentralmali", lat: 14.5, lng: -4.2 }, { n: "Timbuktu", lat: 16.77, lng: -3.0 }, { n: "Nordburkina", lat: 14.1, lng: -1.63 }, { n: "Tillabéri, Niger", lat: 14.21, lng: 1.45 }],
       arcs: [],
       parties: ["Militärregierungen und russische Söldner (Africa Corps)", "JNIM (al-Qaida)", "Islamischer Staat Sahel"],
@@ -469,9 +558,9 @@
       toll: "Laut Global Terrorism Index die Region mit den meisten Terrortoten weltweit."
     },
     {
-      id: "nigeria", name: "Nigeria & Tschadsee", type: "insurg", level: 2,
+      id: "nigeria", name: "Nigeria & Tschadsee", type: "insurg", level: 2, from: 2009,
       status: "Aktiv", since: "2009", sinceLong: "2009 (Boko Haram)",
-      countries: ["566"], involved: [],
+      countries: ["NGA"], involved: [],
       points: [{ n: "Borno", lat: 11.85, lng: 13.16 }, { n: "Zamfara", lat: 12.17, lng: 6.25 }],
       arcs: [],
       parties: ["Nigerianische Armee (mit US-Luftunterstützung)", "ISWAP und Boko Haram", "Bewaffnete Banden im Nordwesten"],
@@ -479,9 +568,9 @@
       news: "Seit Dezember 2025 fliegen die USA zusammen mit Nigeria Luftangriffe gegen den IS. Laut Armee wurden im Oktober 2026 in Borno und Adamawa über 100 ISWAP-Kämpfer getötet."
     },
     {
-      id: "somalia", name: "Somalia", type: "insurg", level: 2,
+      id: "somalia", name: "Somalia", type: "insurg", level: 2, from: 2006,
       status: "Aktiv", since: "2006", sinceLong: "2006 (al-Shabaab)",
-      countries: ["706"], involved: [],
+      countries: ["SOM"], involved: [],
       points: [{ n: "Region Bay / Baidoa", lat: 3.11, lng: 43.65 }, { n: "Mogadischu", lat: 2.05, lng: 45.32 }],
       arcs: [],
       parties: ["Bundesregierung und Truppen der Afrikanischen Union", "al-Shabaab (al-Qaida)", "Oppositionskräfte in den Bundesstaaten"],
@@ -489,9 +578,9 @@
       news: "Im Oktober 2026 eroberten Oppositionskräfte im Bundesstaat South West fünf Städte in der Region Bay. Al-Shabaab fügte Regierungstruppen bei einem Hinterhalt schwere Verluste zu. Die politische UNO-Mission endete am 31. Oktober."
     },
     {
-      id: "suedsudan", name: "Südsudan", type: "civil", level: 2,
+      id: "suedsudan", name: "Südsudan", type: "civil", level: 2, from: 2025,
       status: "Erneute Kämpfe", since: "2025", sinceLong: "2025 (erneut; Bürgerkrieg schon 2013–2018)",
-      countries: ["728"], involved: [],
+      countries: ["SSD"], involved: [],
       points: [{ n: "Jonglei", lat: 7.6, lng: 32.4 }, { n: "Upper Nile / Nasir", lat: 8.6, lng: 33.07 }],
       arcs: [],
       parties: ["Regierungsarmee (SSPDF)", "SPLA-IO von Riek Machar", "White Army (Nuer-Milizen)"],
@@ -499,9 +588,9 @@
       news: "Seit Dezember 2025 wird in Jonglei und Upper Nile gekämpft, die Armee setzt dabei Luftangriffe ein. Die Gewalt hat Zehntausende Menschen vertrieben."
     },
     {
-      id: "syrien", name: "Syrien", type: "civil", level: 1,
-      status: "Fragile Stabilisierung", since: "2011", sinceLong: "2011; neue Regierung seit Dezember 2024",
-      countries: ["760"], involved: ["376"],
+      id: "syrien", name: "Syrien", type: "civil", level: 1, from: 2025,
+      status: "Fragile Stabilisierung", since: "2024", sinceLong: "Dezember 2024 (Sturz Assads); Bürgerkrieg seit 2011",
+      countries: ["SYR"], involved: ["ISR"],
       points: [{ n: "Suwaida", lat: 32.71, lng: 36.57 }],
       arcs: [],
       parties: ["Übergangsregierung", "Drusische Milizen in Suwaida", "Israel", "IS-Zellen"],
@@ -509,9 +598,9 @@
       news: "Anfang 2026 übernahm die Armee nach einer kurzen Offensive die meisten Gebiete der kurdisch geführten SDF im Nordosten; die SDF sollen in die Armee eingegliedert werden. Suwaida ist weiter in der Hand drusischer Milizen, Israel greift im Süden immer wieder an."
     },
     {
-      id: "haiti", name: "Haiti", type: "crime", level: 3,
+      id: "haiti", name: "Haiti", type: "crime", level: 3, from: 2021,
       status: "Eskalation", since: "2021", sinceLong: "2021 (Ermordung von Präsident Moïse)",
-      countries: ["332"], involved: [],
+      countries: ["HTI"], involved: [],
       points: [{ n: "Port-au-Prince", lat: 18.54, lng: -72.34 }],
       arcs: [],
       parties: ["Bandenallianz «Viv Ansanm» u. a.", "Polizei", "Gang Suppression Force (von der UNO gestützt)"],
@@ -520,9 +609,9 @@
       toll: "Über 5’000 Tote pro Jahr durch Bandengewalt (UNO-Zahlen 2024)."
     },
     {
-      id: "mexiko", name: "Mexiko: Kartellkrieg", type: "crime", level: 3,
+      id: "mexiko", name: "Mexiko: Kartellkrieg", type: "crime", level: 3, from: 2006,
       status: "Aktiv", since: "2006", sinceLong: "2006 (Drogenkrieg)",
-      countries: ["484"], involved: [],
+      countries: ["MEX"], involved: [],
       points: [{ n: "Culiacán, Sinaloa", lat: 24.8, lng: -107.39 }, { n: "Michoacán", lat: 19.2, lng: -101.9 }],
       arcs: [],
       parties: ["Sinaloa-Kartell (Fraktionen Chapitos und Mayos)", "Jalisco-Kartell (CJNG)", "Mexikanischer Staat"],
@@ -531,9 +620,9 @@
       toll: "Über 100’000 Menschen gelten als verschwunden."
     },
     {
-      id: "kolumbien", name: "Kolumbien", type: "insurg", level: 2,
-      status: "Eskalation", since: "1964", sinceLong: "1964; neue Gewaltwelle seit 2025",
-      countries: ["170"], involved: [],
+      id: "kolumbien", name: "Kolumbien", type: "insurg", level: 2, from: 2017,
+      status: "Eskalation", since: "2017", sinceLong: "2017 (nach dem FARC-Friedensvertrag); Konflikt seit 1964",
+      countries: ["COL"], involved: [],
       points: [{ n: "Catatumbo", lat: 8.6, lng: -73.0 }, { n: "Arauca", lat: 7.08, lng: -70.76 }],
       arcs: [],
       parties: ["Kolumbianische Armee", "ELN-Guerilla", "FARC-Dissidenten", "Clan del Golfo"],
@@ -541,9 +630,9 @@
       news: "In Catatumbo an der Grenze zu Venezuela wurden laut UNO von Januar bis August 2026 über 79’000 Menschen vertrieben. Präsident Abelardo de la Espriella ordnete am 19. Oktober eine neue Offensive gegen ELN und Dissidenten in Arauca an."
     },
     {
-      id: "venezuela", name: "Venezuela", type: "crime", level: 1,
+      id: "venezuela", name: "Venezuela", type: "crime", level: 1, from: 2026,
       status: "Instabil nach US-Eingriff", since: "2026", sinceLong: "Januar 2026",
-      countries: ["862"], involved: ["840"],
+      countries: ["VEN"], involved: ["USA"],
       points: [{ n: "Caracas", lat: 10.49, lng: -66.88 }],
       arcs: [],
       parties: ["Übergangsregierung unter Delcy Rodríguez", "USA", "ELN", "Colectivos und «Megabandas»"],
@@ -551,9 +640,9 @@
       news: "Bewaffnete Gruppen wie die kolumbianische ELN und regierungsnahe Colectivos bleiben aktiv. Anfang November griff Venezuelas Armee ein ELN-Lager an; die USA verhandeln über eine längerfristige Militärpräsenz."
     },
     {
-      id: "ecuador", name: "Ecuador", type: "crime", level: 2,
+      id: "ecuador", name: "Ecuador", type: "crime", level: 2, from: 2024,
       status: "Aktiv", since: "2024", sinceLong: "Januar 2024 («interner bewaffneter Konflikt»)",
-      countries: ["218"], involved: [],
+      countries: ["ECU"], involved: [],
       points: [{ n: "Guayaquil", lat: -2.17, lng: -79.92 }],
       arcs: [],
       parties: ["Armee und Polizei", "Über 20 kriminelle Banden (u. a. Los Choneros, Los Lobos)"],
@@ -561,9 +650,9 @@
       news: "Die Mordrate ist eine der höchsten der Welt; Gefängnisse und Hafenstädte wie Guayaquil sind Brennpunkte."
     },
     {
-      id: "thailand-kambodscha", name: "Thailand – Kambodscha", type: "war", level: 1,
+      id: "thailand-kambodscha", name: "Thailand – Kambodscha", type: "war", level: 1, from: 2025,
       status: "Waffenruhe", since: "2025", sinceLong: "Juli 2025",
-      countries: ["764", "116"], involved: [],
+      countries: ["THA", "KHM"], involved: [],
       points: [{ n: "Grenzgebiet bei Preah Vihear", lat: 14.39, lng: 104.68 }],
       arcs: [],
       parties: ["Thailand", "Kambodscha"],
@@ -571,9 +660,9 @@
       news: "Die Waffenruhe vom 27. Dezember 2025 hält weitgehend, ist aber brüchig. Die Grenzübergänge sind weiterhin geschlossen."
     },
     {
-      id: "mosambik", name: "Mosambik: Cabo Delgado", type: "insurg", level: 1,
+      id: "mosambik", name: "Mosambik: Cabo Delgado", type: "insurg", level: 1, from: 2017,
       status: "Aktiv", since: "2017", sinceLong: "2017",
-      countries: ["508"], involved: [],
+      countries: ["MOZ"], involved: [],
       points: [{ n: "Cabo Delgado", lat: -11.35, lng: 40.35 }],
       arcs: [],
       parties: ["Mosambikanische Armee und ruandische Truppen", "Islamischer Staat Mosambik"],
@@ -581,9 +670,9 @@
       news: "Die Angriffe flammen immer wieder auf und vertreiben die Bevölkerung, auch in der Nähe grosser Gasprojekte."
     },
     {
-      id: "kamerun", name: "Kamerun", type: "insurg", level: 1,
+      id: "kamerun", name: "Kamerun", type: "insurg", level: 1, from: 2017,
       status: "Aktiv", since: "2017", sinceLong: "2017 (anglophone Regionen)",
-      countries: ["120"], involved: [],
+      countries: ["CMR"], involved: [],
       points: [{ n: "Bamenda", lat: 5.96, lng: 10.15 }, { n: "Äusserster Norden", lat: 10.6, lng: 14.3 }],
       arcs: [],
       parties: ["Kamerunische Armee", "Anglophone Separatisten", "Boko Haram (im Norden)"],
@@ -591,9 +680,9 @@
       news: "Beide Konflikte sind ungelöst; Hunderttausende Menschen sind vertrieben."
     },
     {
-      id: "zentralafrika", name: "Zentralafrikanische Republik", type: "civil", level: 1,
+      id: "zentralafrika", name: "Zentralafrikanische Republik", type: "civil", level: 1, from: 2012,
       status: "Aktiv", since: "2012", sinceLong: "2012",
-      countries: ["140"], involved: [],
+      countries: ["CAF"], involved: [],
       points: [{ n: "Norden und Osten", lat: 7.0, lng: 21.5 }],
       arcs: [],
       parties: ["Regierung und russische Söldner", "Verschiedene Rebellengruppen"],
@@ -602,7 +691,484 @@
     }
   ];
 
-  /* ================= Helfer ================= */
+  // ---------- Vergangenheit (1900–2025) ----------
+  // H(id, name, type, level, von, bis, Schauplatz, beteiligt, Brennpunkte, Bögen, Text, Opfer)
+  const P = (n, lat, lng) => ({ n, lat, lng });
+  const WASH = [38.9, -77.04], MOSKAU = [55.75, 37.62];
+  const H = (id, name, type, level, from, to, countries, involved, points, arcs, lead, toll) =>
+    ({ id, name, type, level, from, to, countries, involved, points, arcs, lead, toll, past: true });
+
+  const HISTORY = [
+    H("burenkrieg", "Zweiter Burenkrieg", "war", 2, 1899, 1902, ["ZAF"], ["GBR"],
+      [P("Transvaal", -26.2, 28.0), P("Oranjefreistaat", -29.1, 26.2)], [],
+      "Grossbritannien eroberte die Burenrepubliken Transvaal und Oranjefreistaat. In britischen Lagern starben Zehntausende Frauen und Kinder sowie schwarze Afrikanerinnen und Afrikaner.",
+      "Rund 70’000 Tote, mehr als die Hälfte davon in den Lagern."),
+    H("philippinen-usa", "Philippinisch-Amerikanischer Krieg", "colonial", 3, 1899, 1902, ["PHL"], ["USA"],
+      [P("Luzon", 15.5, 121.0)], [],
+      "Nach dem Spanisch-Amerikanischen Krieg kämpften philippinische Unabhängigkeitskämpfer gegen die neue Kolonialmacht USA.",
+      "Schätzungen: 200’000 oder mehr Tote, vor allem Zivilpersonen durch Hunger und Krankheiten."),
+    H("russisch-japanisch", "Russisch-Japanischer Krieg", "war", 3, 1904, 1905, [], ["RUS", "JPN"],
+      [P("Port Arthur", 38.81, 121.26), P("Mukden", 41.8, 123.43), P("Seeschlacht bei Tsushima", 34.4, 129.4)], [[35.68, 139.69, 38.81, 121.26]],
+      "Russland und Japan kämpften um die Vorherrschaft in der Mandschurei und in Korea. Japans Sieg war der erste einer asiatischen über eine europäische Grossmacht in der Neuzeit.",
+      "Rund 130’000 bis 170’000 Tote."),
+    H("herero-nama", "Krieg gegen Herero und Nama", "colonial", 2, 1904, 1908, ["NAM"], ["DEU"],
+      [P("Waterberg", -20.5, 17.25)], [],
+      "Deutsche Kolonialtruppen schlugen den Aufstand der Herero und Nama in Deutsch-Südwestafrika brutal nieder. Der Vernichtungsfeldzug gilt als erster Völkermord des 20. Jahrhunderts; Deutschland hat ihn 2021 als solchen anerkannt.",
+      "Schätzungsweise 65’000 Herero und 10’000 Nama getötet."),
+    H("maji-maji", "Maji-Maji-Krieg", "colonial", 3, 1905, 1907, ["TZA"], ["DEU"],
+      [P("Südtansania", -9.5, 37.5)], [],
+      "Im Süden Deutsch-Ostafrikas erhoben sich viele Völker gegen die Kolonialherrschaft. Die deutsche Armee antwortete mit einer Politik der verbrannten Erde.",
+      "Schätzungen: 75’000 bis 300’000 Tote, die meisten durch Hunger."),
+    H("mexikanische-revolution", "Mexikanische Revolution", "civil", 3, 1910, 1920, ["MEX"], [],
+      [P("Chihuahua", 28.63, -106.07), P("Morelos", 18.68, -99.1)], [],
+      "Aufstände gegen den Diktator Porfirio Díaz mündeten in einen jahrelangen Bürgerkrieg zwischen wechselnden Revolutionsarmeen, etwa unter Pancho Villa und Emiliano Zapata.",
+      "Schätzungen: mehrere Hunderttausend bis über 1 Million Tote."),
+    H("balkankriege", "Balkankriege", "war", 3, 1912, 1913, ["MKD", "ALB", "GRC", "BGR", "SRB", "MNE"], ["TUR"],
+      [P("Makedonien", 41.6, 21.7), P("Adrianopel (Edirne)", 41.68, 26.56)], [],
+      "Serbien, Bulgarien, Griechenland und Montenegro vertrieben das Osmanische Reich fast ganz vom Balkan; danach zerstritten sie sich über die Beute.",
+      "Über 100’000 Tote."),
+    H("weltkrieg-1", "Erster Weltkrieg", "war", 3, 1914, 1918,
+      ["FRA", "BEL", "POL", "LTU", "LVA", "BLR", "UKR", "ROU", "ITA", "SVN", "SRB", "MKD", "GRC", "TUR", "IRQ", "SYR", "ISR", "PSE", "JOR", "TZA"],
+      ["DEU", "AUT", "HUN", "BGR", "GBR", "RUS", "USA", "CAN", "AUS", "NZL"],
+      [P("Verdun", 49.16, 5.39), P("Somme", 50.0, 2.7), P("Ostfront (Galizien)", 49.84, 24.03), P("Isonzo", 46.0, 13.6), P("Gallipoli", 40.25, 26.4), P("Ostanatolien (Völkermord an den Armeniern)", 38.5, 39.5)],
+      [[WASH[0], WASH[1], 49.16, 5.39]],
+      "Der «Grosse Krieg» zwischen den Mittelmächten Deutschland, Österreich-Ungarn, Osmanisches Reich und Bulgarien und der Entente aus Frankreich, Grossbritannien, Russland, später Italien und den USA. Stellungskrieg, Maschinengewehre und Giftgas prägten die Westfront.",
+      "Rund 17 Millionen Tote. Im Osmanischen Reich wurden ab 1915 bis zu 1,5 Millionen Armenierinnen und Armenier ermordet."),
+    H("russischer-buergerkrieg", "Russischer Bürgerkrieg", "civil", 3, 1917, 1922, ["RUS", "UKR", "BLR"], [],
+      [P("Moskau", 55.75, 37.62), P("Zarizyn", 48.7, 44.5), P("Sibirien (Omsk)", 54.99, 73.37)], [],
+      "Nach der Oktoberrevolution kämpften die Bolschewiki («Rote») gegen ein loses Bündnis aus «Weissen», nationalen Bewegungen und ausländischen Interventionstruppen. Der Sieg der Roten führte 1922 zur Gründung der Sowjetunion.",
+      "Schätzungen: 7 bis 12 Millionen Tote, die meisten durch Hunger und Seuchen."),
+    H("polnisch-sowjetisch", "Polnisch-Sowjetischer Krieg", "war", 3, 1919, 1921, ["POL", "UKR", "BLR"], ["RUS"],
+      [P("Warschau", 52.23, 21.01)], [[MOSKAU[0], MOSKAU[1], 52.23, 21.01]],
+      "Das wiedergegründete Polen und Sowjetrussland kämpften um die Gebiete dazwischen. In der Schlacht bei Warschau 1920 stoppte Polen den Vormarsch der Roten Armee.",
+      "Über 100’000 Tote."),
+    H("griechisch-tuerkisch", "Griechisch-Türkischer Krieg", "war", 2, 1919, 1922, [], ["GRC", "TUR"],
+      [P("Smyrna (Izmir)", 38.42, 27.14), P("Sakarya", 39.6, 31.2)], [],
+      "Nach dem Ersten Weltkrieg drang Griechenland in Westanatolien vor und wurde von den Truppen Mustafa Kemals zurückgeschlagen. 1923 entstand die Republik Türkei.",
+      "Zehntausende Tote; im anschliessenden Bevölkerungsaustausch mussten rund 1,6 Millionen Menschen ihre Heimat verlassen."),
+    H("irland", "Irischer Unabhängigkeits- und Bürgerkrieg", "colonial", 1, 1919, 1923, ["IRL"], ["GBR"],
+      [P("Dublin", 53.35, -6.26)], [],
+      "Die Irisch-Republikanische Armee kämpfte gegen die britische Herrschaft. Über den Vertrag von 1921 zerstritt sich die Unabhängigkeitsbewegung und führte einen kurzen Bürgerkrieg.",
+      "Rund 4’000 Tote."),
+    H("rifkrieg", "Rifkrieg", "colonial", 2, 1921, 1926, ["MAR"], ["ESP", "FRA"],
+      [P("Rifgebirge", 35.0, -3.9)], [],
+      "Berberstämme unter Abd el-Krim riefen im Norden Marokkos eine Republik aus und besiegten zunächst die spanische Armee. Erst mit französischer Hilfe und Giftgas schlug Spanien den Aufstand nieder.",
+      "Zehntausende Tote."),
+    H("china-buergerkrieg-1", "Chinesischer Bürgerkrieg (1. Phase)", "civil", 3, 1927, 1936, ["CHN"], [],
+      [P("Jiangxi", 27.6, 115.9), P("Langer Marsch nach Yan'an", 36.6, 109.5)], [],
+      "Die nationalistische Kuomintang unter Chiang Kai-shek bekämpfte die Kommunisten. Diese zogen sich 1934/35 auf dem «Langen Marsch» nach Nordchina zurück.",
+      "Hunderttausende Tote."),
+    H("chacokrieg", "Chacokrieg", "war", 2, 1932, 1935, ["BOL", "PRY"], [],
+      [P("Gran Chaco", -21.0, -61.0)], [],
+      "Bolivien und Paraguay kämpften um die trockene Region Gran Chaco, in der man Öl vermutete. Es war der blutigste Krieg Südamerikas im 20. Jahrhundert.",
+      "Rund 90’000 bis 100’000 Tote."),
+    H("abessinienkrieg", "Italienisch-Äthiopischer Krieg", "war", 3, 1935, 1936, ["ETH"], ["ITA"],
+      [P("Addis Abeba", 9.03, 38.74)], [[41.9, 12.5, 9.03, 38.74]],
+      "Das faschistische Italien überfiel das unabhängige Kaiserreich Abessinien und setzte dabei Giftgas ein. Der Völkerbund verhängte nur schwache Sanktionen.",
+      "Zehntausende bis Hunderttausende Tote in Äthiopien."),
+    H("spanischer-buergerkrieg", "Spanischer Bürgerkrieg", "civil", 3, 1936, 1939, ["ESP"], ["DEU", "ITA", "RUS"],
+      [P("Madrid", 40.42, -3.7), P("Guernica", 43.31, -2.68), P("Ebro", 41.1, 0.5)],
+      [[52.52, 13.4, 43.31, -2.68], [41.9, 12.5, 40.42, -3.7], [MOSKAU[0], MOSKAU[1], 40.42, -3.7]],
+      "General Franco putschte gegen die gewählte Republik. Deutschland und Italien unterstützten die Putschisten, die Sowjetunion und internationale Brigaden die Republik. Francos Sieg begründete eine Diktatur bis 1975.",
+      "Rund 500’000 Tote."),
+    H("japanisch-chinesisch", "Zweiter Japanisch-Chinesischer Krieg", "war", 3, 1937, 1945, ["CHN"], ["JPN"],
+      [P("Shanghai", 31.23, 121.47), P("Nanjing (Massaker von Nanking)", 32.06, 118.8), P("Chongqing", 29.56, 106.55)], [[35.68, 139.69, 31.23, 121.47]],
+      "Japan, das schon 1931 die Mandschurei besetzt hatte, griff 1937 ganz China an. In Nanking ermordeten japanische Truppen Zehntausende bis Hunderttausende Zivilpersonen. Der Krieg ging im Zweiten Weltkrieg auf.",
+      "Schätzungen: 15 bis 20 Millionen Tote in China."),
+    H("winterkrieg", "Winterkrieg", "war", 3, 1939, 1940, ["FIN"], ["RUS"],
+      [P("Karelische Landenge", 60.6, 29.2)], [],
+      "Die Sowjetunion überfiel Finnland. Die finnische Armee leistete im Winter zähen Widerstand, musste aber Karelien abtreten.",
+      "Über 150’000 Tote, die meisten auf sowjetischer Seite."),
+    H("weltkrieg-2", "Zweiter Weltkrieg", "war", 3, 1939, 1945,
+      ["POL", "DEU", "FRA", "BEL", "NLD", "LUX", "NOR", "DNK", "GBR", "ITA", "GRC", "ALB", "SRB", "HRV", "BIH", "SVN", "MNE", "MKD", "HUN", "ROU", "BGR", "CZE", "SVK", "AUT", "LTU", "LVA", "EST", "BLR", "UKR", "RUS", "MDA", "LBY", "EGY", "TUN", "PHL", "IDN", "MYS", "MMR", "PNG", "SLB", "JPN"],
+      ["USA", "CAN", "AUS", "NZL", "IND", "CHN"],
+      [P("Berlin", 52.52, 13.4), P("Stalingrad", 48.7, 44.5), P("Auschwitz (Holocaust)", 50.03, 19.2), P("Normandie", 49.34, -0.6), P("Leningrad", 59.94, 30.31), P("El Alamein", 30.83, 28.95), P("Pearl Harbor", 21.35, -157.97), P("Okinawa", 26.33, 127.8), P("Hiroshima", 34.39, 132.45)],
+      [[WASH[0], WASH[1], 49.34, -0.6], [21.35, -157.97, 26.33, 127.8]],
+      "Der verheerendste Krieg der Geschichte. Deutschland, Italien und Japan überfielen ihre Nachbarn, die Alliierten um Grossbritannien, die Sowjetunion, die USA und China besiegten sie bis 1945. Die Nationalsozialisten ermordeten im Holocaust rund sechs Millionen Jüdinnen und Juden; der Krieg endete mit den Atombomben auf Hiroshima und Nagasaki.",
+      "70 bis 85 Millionen Tote, mehr als die Hälfte davon Zivilpersonen."),
+    H("indonesien", "Indonesischer Unabhängigkeitskrieg", "colonial", 2, 1945, 1949, ["IDN"], ["NLD"],
+      [P("Java", -7.3, 110.0)], [],
+      "Nach der japanischen Besatzung rief Indonesien die Unabhängigkeit aus. Die Niederlande versuchten mit zwei grossen Militäroffensiven, ihre Kolonie zurückzuerobern.",
+      "Schätzungen: Zehntausende bis rund 100’000 Tote."),
+    H("indochinakrieg", "Indochinakrieg", "colonial", 3, 1946, 1954, ["VNM", "LAO", "KHM"], ["FRA"],
+      [P("Dien Bien Phu", 21.39, 103.02), P("Hanoi", 21.03, 105.85)], [],
+      "Die kommunistische Viet Minh unter Ho Chi Minh kämpfte gegen die französische Kolonialherrschaft. Nach der Niederlage bei Dien Bien Phu zog sich Frankreich zurück, Vietnam wurde geteilt.",
+      "Hunderttausende Tote."),
+    H("china-buergerkrieg-2", "Chinesischer Bürgerkrieg (2. Phase)", "civil", 3, 1946, 1949, ["CHN"], [],
+      [P("Huaihai", 34.26, 117.19), P("Peking", 39.9, 116.4)], [],
+      "Nach dem Krieg gegen Japan setzten Kommunisten und Kuomintang den Bürgerkrieg fort. Mao Zedong rief 1949 die Volksrepublik aus, Chiang Kai-shek floh nach Taiwan.",
+      "Schätzungen: über eine Million Tote."),
+    H("griechischer-buergerkrieg", "Griechischer Bürgerkrieg", "civil", 2, 1946, 1949, ["GRC"], [],
+      [P("Grammos-Gebirge", 40.35, 20.85)], [],
+      "Kommunistische Partisanen kämpften gegen die von Grossbritannien und den USA unterstützte Regierung. Es war einer der ersten Konflikte des Kalten Krieges.",
+      "Zehntausende Tote."),
+    H("teilung-indiens", "Teilung Indiens & Erster Kaschmirkrieg", "war", 3, 1947, 1948, ["IND", "PAK", "BGD"], [],
+      [P("Punjab", 31.0, 74.5), P("Kaschmir", 34.08, 74.8), P("Bengalen", 23.5, 89.0)], [],
+      "Bei der Unabhängigkeit wurde Britisch-Indien in Indien und Pakistan geteilt. Bei Massakern zwischen Hindus, Muslimen und Sikhs starben Hunderttausende; um Kaschmir begann der erste indisch-pakistanische Krieg.",
+      "Schätzungen: 200’000 bis 2 Millionen Tote, rund 15 Millionen Vertriebene."),
+    H("palaestinakrieg", "Palästinakrieg", "war", 2, 1947, 1949, ["ISR", "PSE"], ["EGY", "JOR", "SYR", "IRQ", "LBN"],
+      [P("Jerusalem", 31.78, 35.22)], [],
+      "Nach dem UNO-Teilungsplan brach in Palästina ein Bürgerkrieg aus; nach der Gründung Israels im Mai 1948 griffen arabische Staaten an. Israel gewann den Krieg und vergrösserte sein Gebiet.",
+      "Rund 15’000 bis 20’000 Tote. Etwa 700’000 Palästinenserinnen und Palästinenser flohen oder wurden vertrieben (Nakba)."),
+    H("malaya", "Malaiischer Notstand", "colonial", 2, 1948, 1960, ["MYS"], ["GBR"],
+      [P("Malaiische Halbinsel", 4.2, 101.9)], [],
+      "Kommunistische Guerillas kämpften gegen die britische Kolonialmacht. Grossbritannien siedelte Hunderttausende Menschen in bewachte «neue Dörfer» um.",
+      "Rund 11’000 Tote."),
+    H("myanmar-alt", "Bewaffnete Konflikte in Myanmar", "civil", 2, 1948, 2020, ["MMR"], [],
+      [P("Kachin", 25.4, 97.4), P("Rakhine", 20.15, 92.9), P("Karen-Staat", 17.0, 97.8)], [],
+      "Seit der Unabhängigkeit kämpfen ethnische Armeen gegen die Zentralregierung, einer der längsten Bürgerkriege der Welt. 2017 vertrieb das Militär über 700’000 Rohingya nach Bangladesch.",
+      "Zehntausende Tote."),
+    H("koreakrieg", "Koreakrieg", "war", 3, 1950, 1953, ["KOR", "PRK"], ["USA", "CHN"],
+      [P("Seoul", 37.57, 126.98), P("Pusan-Kessel", 35.18, 129.07), P("Chosin-Stausee", 40.5, 127.2)],
+      [[WASH[0], WASH[1], 37.57, 126.98], [39.9, 116.4, 40.5, 127.2]],
+      "Nordkorea überfiel mit sowjetischer Rückendeckung den Süden. UNO-Truppen unter Führung der USA und später China griffen ein; der Krieg endete mit einem Waffenstillstand an fast derselben Grenze.",
+      "Schätzungen: 2,5 bis 3 Millionen Tote, viele davon Zivilpersonen."),
+    H("mau-mau", "Mau-Mau-Krieg", "colonial", 2, 1952, 1960, ["KEN"], ["GBR"],
+      [P("Zentralkenia", -0.4, 36.95)], [],
+      "Die Mau-Mau-Bewegung kämpfte in Kenia gegen Landraub und britische Kolonialherrschaft. Die Briten internierten Zehntausende Menschen in Lagern und folterten viele von ihnen.",
+      "Über 11’000 getötete Aufständische; die Gesamtzahl ist umstritten."),
+    H("algerienkrieg", "Algerienkrieg", "colonial", 3, 1954, 1962, ["DZA"], ["FRA"],
+      [P("Algier", 36.75, 3.06), P("Aurès-Gebirge", 35.3, 6.6)], [],
+      "Die Nationale Befreiungsfront (FLN) kämpfte für die Unabhängigkeit von Frankreich. Beide Seiten verübten Anschläge, Frankreich setzte systematisch Folter ein; 1962 wurde Algerien unabhängig.",
+      "Mehrere Hunderttausend Tote (Schätzungen 300’000 bis über 1 Million)."),
+    H("sudan-1", "Erster Sudanesischer Bürgerkrieg", "civil", 3, 1955, 1972, ["SDN", "SSD"], [],
+      [P("Südsudan", 7.0, 30.5)], [],
+      "Rebellen im Süden kämpften gegen die Vorherrschaft der arabisch geprägten Regierung in Khartum. Das Abkommen von Addis Abeba brachte dem Süden 1972 Autonomie.",
+      "Rund 500’000 Tote."),
+    H("vietnamkrieg", "Vietnamkrieg", "war", 3, 1955, 1975, ["VNM", "LAO", "KHM"], ["USA"],
+      [P("Saigon", 10.82, 106.63), P("Hanoi", 21.03, 105.85), P("Ho-Chi-Minh-Pfad", 16.5, 106.5)], [[WASH[0], WASH[1], 10.82, 106.63]],
+      "Nordvietnam und der Vietcong kämpften gegen Südvietnam und die USA, die ab 1965 Hunderttausende Soldaten schickten. Der Krieg griff auf Laos und Kambodscha über; 1975 eroberte der Norden Saigon.",
+      "Schätzungen reichen von 1,3 bis über 3 Millionen Toten."),
+    H("suezkrise", "Suezkrise", "war", 1, 1956, 1956, ["EGY"], ["GBR", "FRA", "ISR"],
+      [P("Suezkanal", 30.6, 32.33)], [],
+      "Nach der Verstaatlichung des Suezkanals griffen Israel, Grossbritannien und Frankreich Ägypten an. Auf Druck der USA und der Sowjetunion mussten sie sich zurückziehen.",
+      "Rund 3’000 Tote."),
+    H("ungarn-1956", "Ungarischer Volksaufstand", "war", 1, 1956, 1956, ["HUN"], ["RUS"],
+      [P("Budapest", 47.5, 19.04)], [[MOSKAU[0], MOSKAU[1], 47.5, 19.04]],
+      "Ein Volksaufstand gegen die kommunistische Regierung wurde von sowjetischen Panzern niedergeschlagen.",
+      "Rund 3’000 Tote; rund 200’000 Menschen flohen in den Westen."),
+    H("kubanische-revolution", "Kubanische Revolution", "civil", 1, 1956, 1959, ["CUB"], [],
+      [P("Sierra Maestra", 20.0, -76.85)], [],
+      "Rebellen um Fidel Castro und Che Guevara stürzten den Diktator Fulgencio Batista.",
+      "Einige Tausend Tote."),
+    H("kongokrise", "Kongokrise", "civil", 3, 1960, 1965, ["COD"], ["BEL"],
+      [P("Katanga", -10.7, 26.5), P("Léopoldville (Kinshasa)", -4.32, 15.31)], [],
+      "Nach der Unabhängigkeit von Belgien zerfiel der Kongo: Katanga spaltete sich ab, Premier Patrice Lumumba wurde ermordet, UNO-Truppen griffen ein. Am Ende ergriff Mobutu die Macht.",
+      "Rund 100’000 Tote."),
+    H("guatemala", "Guatemaltekischer Bürgerkrieg", "civil", 3, 1960, 1996, ["GTM"], [],
+      [P("Hochland (Quiché)", 15.3, -91.0)], [],
+      "Linke Guerillas kämpften gegen Militärregierungen. Die Armee verübte in den 1980er-Jahren Massaker an der indigenen Maya-Bevölkerung, die eine UNO-Wahrheitskommission als Völkermord einstufte.",
+      "Rund 200’000 Tote und Verschwundene, die meisten Maya."),
+    H("portugal-kolonialkrieg", "Portugiesischer Kolonialkrieg", "colonial", 3, 1961, 1974, ["AGO", "MOZ", "GNB"], ["PRT"],
+      [P("Angola", -9.5, 16.0), P("Mosambik", -13.0, 37.5), P("Guinea-Bissau", 12.0, -15.0)], [],
+      "Befreiungsbewegungen in Angola, Mosambik und Guinea-Bissau kämpften gegen die Kolonialmacht Portugal. Erst die Nelkenrevolution in Lissabon 1974 beendete den Krieg.",
+      "Zehntausende bis über 100’000 Tote."),
+    H("nordjemen", "Bürgerkrieg im Nordjemen", "civil", 3, 1962, 1970, ["YEM"], ["EGY", "SAU"],
+      [P("Sanaa", 15.37, 44.19)], [],
+      "Republikaner stürzten den Imam, Royalisten kämpften dagegen. Ägypten unterstützte die Republik mit Zehntausenden Soldaten, Saudi-Arabien die Royalisten.",
+      "Schätzungen: 100’000 bis 200’000 Tote."),
+    H("china-indien", "Chinesisch-Indischer Grenzkrieg", "war", 1, 1962, 1962, [], ["IND", "CHN"],
+      [P("Aksai Chin", 35.0, 79.0), P("Arunachal Pradesh", 27.5, 92.5)], [],
+      "China und Indien kämpften einen Monat lang um umstrittene Grenzgebiete im Himalaya. China siegte und behielt Aksai Chin.",
+      "Rund 3’000 Tote."),
+    H("rhodesien", "Rhodesischer Buschkrieg", "colonial", 2, 1964, 1979, ["ZWE"], [],
+      [P("Rhodesien (Simbabwe)", -19.0, 30.0)], [],
+      "Schwarze Befreiungsbewegungen kämpften gegen das weisse Minderheitsregime von Ian Smith. 1980 wurde Simbabwe unabhängig.",
+      "Rund 20’000 bis 30’000 Tote."),
+    H("kolumbien-farc", "Kolumbianischer Konflikt (FARC)", "insurg", 3, 1964, 2016, ["COL"], [],
+      [P("Kolumbien", 3.5, -74.5)], [],
+      "Die FARC- und ELN-Guerillas kämpften gegen den Staat, rechte Paramilitärs gegen die Guerillas, und alle verdienten am Kokainhandel. 2016 schloss die FARC Frieden mit der Regierung.",
+      "Laut Wahrheitskommission rund 450’000 Tote zwischen 1985 und 2018."),
+    H("indien-pakistan-1965", "Indisch-Pakistanischer Krieg 1965", "war", 1, 1965, 1965, [], ["IND", "PAK"],
+      [P("Kaschmir", 34.08, 74.8), P("Lahore", 31.55, 74.34)], [],
+      "Ein pakistanischer Vorstoss in Kaschmir eskalierte zu einem Krieg mit Panzerschlachten im Punjab. Nach drei Wochen vermittelten die Sowjetunion und die USA einen Waffenstillstand.",
+      "Rund 6’000 bis 7’000 Tote."),
+    H("namibia", "Namibischer Unabhängigkeitskrieg", "colonial", 2, 1966, 1990, ["NAM"], ["ZAF"],
+      [P("Ovamboland", -17.8, 15.7)], [],
+      "Die SWAPO kämpfte gegen die Herrschaft Südafrikas über Namibia. Der Krieg war eng mit dem angolanischen Bürgerkrieg verflochten; 1990 wurde Namibia unabhängig.",
+      "Mehr als 10’000 Tote."),
+    H("sechstagekrieg", "Sechstagekrieg", "war", 2, 1967, 1967, ["ISR", "PSE"], ["EGY", "SYR", "JOR"],
+      [P("Sinai", 29.5, 33.8), P("Golanhöhen", 33.0, 35.75), P("Jerusalem", 31.78, 35.22)], [],
+      "In sechs Tagen besiegte Israel Ägypten, Jordanien und Syrien und eroberte den Sinai, den Gazastreifen, das Westjordanland mit Ostjerusalem und die Golanhöhen.",
+      "Rund 20’000 Tote, die meisten auf arabischer Seite."),
+    H("biafra", "Biafra-Krieg", "civil", 3, 1967, 1970, ["NGA"], [],
+      [P("Biafra (Enugu)", 6.45, 7.5)], [],
+      "Der Südosten Nigerias spaltete sich als Republik Biafra ab. Die Regierung blockierte die Region; Bilder hungernder Kinder gingen um die Welt.",
+      "Schätzungen: 500’000 bis 2 Millionen Tote, die meisten durch Hunger."),
+    H("kambodscha-rote-khmer", "Kambodscha: Bürgerkrieg & Rote Khmer", "civil", 3, 1967, 1979, ["KHM"], [],
+      [P("Phnom Penh", 11.56, 104.92)], [],
+      "Nach jahrelangem Bürgerkrieg eroberten die Roten Khmer 1975 Phnom Penh. Ihr Regime trieb die Bevölkerung aufs Land und ermordete Intellektuelle und Minderheiten.",
+      "Unter den Roten Khmer starben 1,5 bis 2 Millionen Menschen, rund ein Viertel der Bevölkerung."),
+    H("nordirland", "Nordirlandkonflikt", "insurg", 1, 1968, 1998, [], ["GBR", "IRL"],
+      [P("Belfast", 54.6, -5.93)], [],
+      "Katholische Republikaner und protestantische Unionisten kämpften um die Zukunft Nordirlands, die IRA verübte Anschläge auch in England. Das Karfreitagsabkommen von 1998 beendete die «Troubles».",
+      "Rund 3’500 Tote."),
+    H("moro", "Moro-Konflikt (Mindanao)", "insurg", 2, 1969, 2019, [], ["PHL"],
+      [P("Mindanao", 7.2, 124.25)], [],
+      "Muslimische Rebellen kämpften im Süden der Philippinen für Selbstbestimmung. 2019 entstand nach einem Friedensabkommen die autonome Region Bangsamoro.",
+      "Zehntausende Tote."),
+    H("bangladesch", "Bangladesch-Krieg", "war", 3, 1971, 1971, ["BGD"], ["PAK", "IND"],
+      [P("Dhaka", 23.81, 90.41)], [],
+      "Ostpakistan kämpfte um die Unabhängigkeit. Die pakistanische Armee verübte Massaker; nach dem Eingreifen Indiens entstand Bangladesch.",
+      "Schätzungen: 300’000 bis 3 Millionen Tote; rund 10 Millionen Menschen flohen nach Indien."),
+    H("jom-kippur", "Jom-Kippur-Krieg", "war", 2, 1973, 1973, ["ISR"], ["EGY", "SYR"],
+      [P("Suezkanal", 30.5, 32.35), P("Golanhöhen", 33.0, 35.75)], [],
+      "Ägypten und Syrien griffen Israel am höchsten jüdischen Feiertag überraschend an. Israel schlug die Angriffe zurück; der Krieg löste die erste Ölkrise aus.",
+      "Rund 10’000 bis 20’000 Tote."),
+    H("aethiopischer-buergerkrieg", "Äthiopischer Bürgerkrieg", "civil", 3, 1974, 1991, ["ETH", "ERI"], [],
+      [P("Addis Abeba", 9.03, 38.74), P("Eritrea (Asmara)", 15.32, 38.93), P("Tigray", 13.5, 39.47)], [],
+      "Die Militärjunta (Derg) unter Mengistu verfolgte Gegner im «Roten Terror». Rebellen aus Tigray und Eritrea stürzten sie 1991; Eritrea wurde 1993 unabhängig.",
+      "Hunderttausende Tote, dazu bis zu 1 Million Hungertote 1983–1985."),
+    H("zypern", "Zypernkonflikt", "war", 1, 1974, 1974, ["CYP", "NCY"], ["TUR", "GRC"],
+      [P("Nikosia", 35.17, 33.36)], [],
+      "Nach einem von der griechischen Junta unterstützten Putsch marschierte die Türkei in Nordzypern ein. Seither ist die Insel geteilt.",
+      "Einige Tausend Tote, rund 200’000 Vertriebene."),
+    H("libanon-buergerkrieg", "Libanesischer Bürgerkrieg", "civil", 3, 1975, 1990, ["LBN"], ["SYR", "ISR"],
+      [P("Beirut", 33.89, 35.5)], [],
+      "Christliche, muslimische und palästinensische Milizen kämpften um die Macht. Syrien und Israel griffen ein; Beirut war jahrelang entlang der «Grünen Linie» geteilt.",
+      "Rund 120’000 bis 150’000 Tote."),
+    H("angola", "Angolanischer Bürgerkrieg", "civil", 3, 1975, 2002, ["AGO"], ["CUB", "ZAF"],
+      [P("Luanda", -8.84, 13.23), P("Cuito Cuanavale", -15.16, 19.17)], [[23.11, -82.37, -8.84, 13.23]],
+      "Nach der Unabhängigkeit kämpften die MPLA-Regierung und die UNITA-Rebellen um die Macht. Kuba schickte Zehntausende Soldaten, Südafrika und die USA unterstützten die UNITA.",
+      "Schätzungen: 500’000 Tote oder mehr."),
+    H("osttimor", "Besetzung Osttimors", "colonial", 3, 1975, 1999, ["TLS"], ["IDN"],
+      [P("Dili", -8.56, 125.57)], [],
+      "Indonesien besetzte die frühere portugiesische Kolonie Osttimor. Nach einem Unabhängigkeitsreferendum 1999 verwüsteten Milizen das Land, bevor UNO-Truppen eingriffen.",
+      "Rund 100’000 bis 180’000 Tote (Wahrheitskommission)."),
+    H("westsahara", "Westsahara-Krieg", "colonial", 2, 1975, 1991, ["ESH"], ["MAR", "MRT"],
+      [P("Westsahara", 24.5, -13.0)], [],
+      "Nach dem Abzug Spaniens besetzten Marokko und Mauretanien das Gebiet. Die Befreiungsbewegung Polisario kämpfte für die Unabhängigkeit; der Waffenstillstand von 1991 zerbrach 2020.",
+      "Über 10’000 Tote."),
+    H("aceh", "Aceh-Konflikt", "insurg", 2, 1976, 2005, [], ["IDN"],
+      [P("Aceh", 4.7, 96.7)], [],
+      "Die Bewegung Freies Aceh kämpfte für die Unabhängigkeit der Provinz. Nach dem Tsunami 2004 schlossen beide Seiten Frieden.",
+      "Rund 15’000 Tote."),
+    H("ogadenkrieg", "Ogadenkrieg", "war", 2, 1977, 1978, [], ["ETH", "SOM"],
+      [P("Ogaden", 7.0, 44.0)], [],
+      "Somalia wollte die von Somali bewohnte Region Ogaden erobern. Mit sowjetischen Waffen und kubanischen Soldaten schlug Äthiopien den Angriff zurück.",
+      "Zehntausende Tote."),
+    H("mosambik-buergerkrieg", "Mosambikanischer Bürgerkrieg", "civil", 3, 1977, 1992, ["MOZ"], [],
+      [P("Zentralmosambik", -18.0, 34.5)], [],
+      "Die Rebellenbewegung RENAMO, unterstützt von Rhodesien und Südafrika, kämpfte gegen die FRELIMO-Regierung. Die Gemeinschaft Sant'Egidio vermittelte 1992 den Frieden.",
+      "Rund 1 Million Tote, viele durch Hunger."),
+    H("nicaragua", "Nicaragua: Revolution & Contra-Krieg", "civil", 2, 1978, 1990, ["NIC"], ["USA"],
+      [P("Nicaragua", 12.9, -85.2)], [],
+      "Die Sandinisten stürzten 1979 den Diktator Somoza. Danach bekämpften die von den USA finanzierten Contras die sandinistische Regierung.",
+      "Zehntausende Tote."),
+    H("kambodscha-vietnam", "Kambodschanisch-Vietnamesischer Krieg", "war", 2, 1978, 1989, ["KHM"], ["VNM"],
+      [P("Grenze zu Thailand", 13.6, 102.6)], [],
+      "Vietnam marschierte in Kambodscha ein und stürzte die Roten Khmer. Diese kämpften danach aus Lagern an der thailändischen Grenze weiter.",
+      "Zehntausende Tote."),
+    H("china-vietnam", "Chinesisch-Vietnamesischer Krieg", "war", 2, 1979, 1979, ["VNM"], ["CHN"],
+      [P("Lang Son", 21.85, 106.76)], [],
+      "Als Strafe für Vietnams Einmarsch in Kambodscha griff China Nordvietnam an und zog sich nach einem Monat wieder zurück.",
+      "Zehntausende Tote."),
+    H("afghanistan-sowjet", "Sowjetisch-Afghanischer Krieg", "war", 3, 1979, 1989, ["AFG"], ["RUS", "USA", "PAK"],
+      [P("Kabul", 34.53, 69.17), P("Pandschir-Tal", 35.3, 69.5)], [[MOSKAU[0], MOSKAU[1], 34.53, 69.17]],
+      "Die Sowjetunion marschierte in Afghanistan ein, um die kommunistische Regierung zu stützen. Islamistische Mudschahedin, unterstützt von den USA, Pakistan und Saudi-Arabien, zwangen sie zum Abzug.",
+      "Schätzungen: 500’000 bis 2 Millionen Tote; über 5 Millionen Menschen flohen."),
+    H("elsalvador", "Salvadorianischer Bürgerkrieg", "civil", 2, 1979, 1992, ["SLV"], ["USA"],
+      [P("El Salvador", 13.8, -88.9)], [],
+      "Die Guerilla FMLN kämpfte gegen die von den USA unterstützte Regierung. Todesschwadronen ermordeten Tausende Menschen, darunter Erzbischof Óscar Romero.",
+      "Rund 75’000 Tote."),
+    H("iran-irak", "Iran-Irak-Krieg", "war", 3, 1980, 1988, ["IRN", "IRQ"], [],
+      [P("Basra", 30.5, 47.8), P("Chorramschahr", 30.44, 48.18), P("Halabdscha", 35.18, 45.99)], [],
+      "Saddam Husseins Irak überfiel den Iran nach der Islamischen Revolution. In acht Jahren Stellungskrieg setzte der Irak Giftgas ein, auch gegen die eigene kurdische Bevölkerung, etwa 1988 in Halabdscha.",
+      "Schätzungen: 500’000 Tote oder mehr."),
+    H("uganda-buschkrieg", "Ugandischer Buschkrieg", "civil", 3, 1980, 1986, ["UGA"], [],
+      [P("Luwero-Dreieck", 0.84, 32.5)], [],
+      "Die Rebellenarmee von Yoweri Museveni kämpfte gegen die Regierung von Milton Obote und eroberte 1986 die Macht.",
+      "Schätzungen: 100’000 bis 500’000 Tote."),
+    H("peru", "Peru: Leuchtender Pfad", "insurg", 2, 1980, 2000, ["PER"], [],
+      [P("Ayacucho", -13.16, -74.22)], [],
+      "Die maoistische Guerilla «Leuchtender Pfad» führte einen brutalen Krieg gegen den Staat; auch die Armee verübte schwere Verbrechen.",
+      "Rund 69’000 Tote (Wahrheitskommission)."),
+    H("falklandkrieg", "Falklandkrieg", "war", 1, 1982, 1982, ["FLK"], ["ARG", "GBR"],
+      [P("Port Stanley", -51.7, -57.85)], [],
+      "Argentinien besetzte die britischen Falklandinseln, Grossbritannien eroberte sie nach zehn Wochen zurück.",
+      "907 Tote."),
+    H("sudan-2", "Zweiter Sudanesischer Bürgerkrieg", "civil", 3, 1983, 2005, ["SDN", "SSD"], [],
+      [P("Südsudan (Juba)", 4.85, 31.58), P("Nubaberge", 11.5, 30.5)], [],
+      "Die SPLA unter John Garang kämpfte gegen die Regierung in Khartum. Der Friedensvertrag von 2005 führte 2011 zur Unabhängigkeit des Südsudans.",
+      "Rund 2 Millionen Tote, vor allem durch Hunger und Krankheiten."),
+    H("sri-lanka", "Sri-Lankischer Bürgerkrieg", "civil", 3, 1983, 2009, ["LKA"], [],
+      [P("Jaffna", 9.66, 80.0)], [],
+      "Die Tamil Tigers (LTTE) kämpften für einen eigenen Tamilenstaat im Norden und Osten. Die Armee besiegte sie 2009 in einer Offensive, bei der Zehntausende Zivilpersonen starben.",
+      "Schätzungen: 80’000 bis über 100’000 Tote."),
+    H("pkk", "Kurdenkonflikt in der Türkei (PKK)", "insurg", 2, 1984, 2025, [], ["TUR"],
+      [P("Südosttürkei (Diyarbakır)", 37.91, 40.24)], [],
+      "Die Arbeiterpartei Kurdistans (PKK) kämpfte gegen den türkischen Staat, zuerst für einen eigenen Staat, später für Autonomie. 2025 erklärte die PKK ihre Auflösung.",
+      "Über 40’000 Tote."),
+    H("lra", "LRA-Aufstand", "insurg", 2, 1987, 2006, ["UGA"], [],
+      [P("Norduganda (Gulu)", 2.78, 32.3)], [],
+      "Die «Widerstandsarmee des Herrn» von Joseph Kony terrorisierte Norduganda und entführte Zehntausende Kinder als Soldaten und Sexsklaven.",
+      "Zehntausende Tote, rund 2 Millionen Vertriebene."),
+    H("intifada-1", "Erste Intifada", "insurg", 1, 1987, 1993, ["PSE"], ["ISR"],
+      [P("Gazastreifen", 31.42, 34.38), P("Westjordanland", 32.0, 35.25)], [],
+      "Ein Volksaufstand der Palästinenserinnen und Palästinenser gegen die israelische Besatzung, mit Streiks, Steinwürfen und Gewalt. Er mündete in die Osloer Abkommen.",
+      "Rund 2’000 Tote."),
+    H("bergkarabach-1", "Erster Bergkarabach-Krieg", "war", 2, 1988, 1994, ["AZE"], ["ARM"],
+      [P("Bergkarabach", 39.82, 46.75)], [],
+      "Armenien und Aserbaidschan kämpften um die armenisch besiedelte Region Bergkarabach. Armenische Truppen besetzten sie und umliegende Gebiete.",
+      "Rund 30’000 Tote, über 1 Million Vertriebene."),
+    H("kaschmir-aufstand", "Aufstand in Kaschmir", "insurg", 2, 1989, 2024, [], ["IND"],
+      [P("Srinagar", 34.08, 74.8)], [],
+      "Militante Gruppen, teils von Pakistan unterstützt, kämpften im indisch verwalteten Kaschmir gegen den indischen Staat. 2019 hob Indien die Autonomie der Region auf.",
+      "Über 40’000 Tote."),
+    H("liberia", "Liberianische Bürgerkriege", "civil", 3, 1989, 2003, ["LBR"], [],
+      [P("Monrovia", 6.3, -10.8)], [],
+      "Warlords wie Charles Taylor kämpften in zwei Bürgerkriegen um die Macht und setzten Kindersoldaten ein. Taylor wurde später als Kriegsverbrecher verurteilt.",
+      "Rund 250’000 Tote."),
+    H("afghanistan-buergerkrieg", "Afghanischer Bürgerkrieg", "civil", 3, 1989, 2001, ["AFG"], ["PAK"],
+      [P("Kabul", 34.53, 69.17)], [],
+      "Nach dem sowjetischen Abzug bekämpften sich Mudschahedin-Gruppen gegenseitig und verwüsteten Kabul. 1996 eroberten die Taliban die Hauptstadt, im Norden hielt sich die Nordallianz.",
+      "Zehntausende bis Hunderttausende Tote."),
+    H("golfkrieg", "Zweiter Golfkrieg", "war", 2, 1990, 1991, ["KWT", "IRQ"], ["USA", "GBR", "SAU", "FRA"],
+      [P("Kuwait", 29.37, 47.98), P("Bagdad", 33.31, 44.36)], [[WASH[0], WASH[1], 29.37, 47.98]],
+      "Der Irak besetzte Kuwait. Eine Koalition unter Führung der USA befreite das Land Anfang 1991 in der «Operation Wüstensturm».",
+      "Zehntausende Tote, vor allem irakische Soldaten."),
+    H("ruanda", "Ruanda: Bürgerkrieg & Völkermord", "civil", 3, 1990, 1994, ["RWA"], [],
+      [P("Kigali", -1.95, 30.06)], [],
+      "Im Bürgerkrieg zwischen Regierung und der Tutsi-Rebellenarmee RPF organisierten Hutu-Extremisten 1994 einen Völkermord. In rund 100 Tagen wurden 800’000 bis 1 Million Menschen ermordet, vor allem Tutsi.",
+      "800’000 bis 1 Million Tote."),
+    H("kroatienkrieg", "Kroatienkrieg", "war", 2, 1991, 1995, ["HRV"], ["SRB"],
+      [P("Vukovar", 45.35, 19.0)], [],
+      "Nach Kroatiens Unabhängigkeitserklärung kämpften kroatische Truppen gegen serbische Milizen und die jugoslawische Armee. Vukovar wurde 1991 fast völlig zerstört.",
+      "Rund 20’000 Tote."),
+    H("somalia-buergerkrieg", "Somalischer Bürgerkrieg", "civil", 3, 1991, 2005, ["SOM", "SOL"], ["USA"],
+      [P("Mogadischu", 2.05, 45.32)], [],
+      "Nach dem Sturz von Diktator Siad Barre zerfiel Somalia in Clan-Gebiete. Eine Hungersnot und das Scheitern einer UNO- und US-Mission 1993 prägten die 1990er-Jahre.",
+      "Hunderttausende Tote, viele in der Hungersnot 1991/92."),
+    H("algerien-buergerkrieg", "Algerischer Bürgerkrieg", "civil", 3, 1991, 2002, ["DZA"], [],
+      [P("Algier", 36.75, 3.06)], [],
+      "Nach dem abgebrochenen Wahlsieg der Islamisten kämpften bewaffnete islamistische Gruppen gegen die Armee. Massaker an Dorfbewohnern prägten das «schwarze Jahrzehnt».",
+      "Rund 150’000 bis 200’000 Tote."),
+    H("sierra-leone", "Bürgerkrieg in Sierra Leone", "civil", 2, 1991, 2002, ["SLE"], [],
+      [P("Diamantenfelder (Kono)", 8.6, -11.0)], [],
+      "Die Rebellen der RUF finanzierten sich mit «Blutdiamanten» und verstümmelten Tausende Zivilpersonen. Britische und UNO-Truppen halfen, den Krieg zu beenden.",
+      "Rund 50’000 bis 70’000 Tote."),
+    H("bosnienkrieg", "Bosnienkrieg", "war", 3, 1992, 1995, ["BIH"], ["SRB", "HRV"],
+      [P("Sarajevo", 43.86, 18.41), P("Srebrenica", 44.1, 19.3)], [],
+      "Bosnische Serben, Kroaten und Bosniaken kämpften um das Gebiet der früheren jugoslawischen Republik. Sarajevo wurde fast vier Jahre belagert, in Srebrenica ermordeten bosnisch-serbische Truppen 1995 rund 8’000 Bosniaken.",
+      "Rund 100’000 Tote, über 2 Millionen Vertriebene."),
+    H("tadschikistan", "Tadschikischer Bürgerkrieg", "civil", 2, 1992, 1997, ["TJK"], [],
+      [P("Duschanbe", 38.56, 68.77)], [],
+      "Nach dem Zerfall der Sowjetunion kämpften regionale Clans, Islamisten und Demokraten gegen die Regierung.",
+      "Schätzungen: 50’000 bis 100’000 Tote."),
+    H("burundi", "Burundischer Bürgerkrieg", "civil", 3, 1993, 2005, ["BDI"], [],
+      [P("Bujumbura", -3.38, 29.36)], [],
+      "Nach der Ermordung des ersten gewählten Hutu-Präsidenten kämpften Hutu-Rebellen gegen die von Tutsi dominierte Armee.",
+      "Rund 300’000 Tote."),
+    H("tschetschenien-1", "Erster Tschetschenienkrieg", "civil", 2, 1994, 1996, [], ["RUS"],
+      [P("Grosny", 43.32, 45.69)], [],
+      "Russland versuchte, die abtrünnige Republik Tschetschenien zurückzuerobern, und zerstörte die Hauptstadt Grosny. 1996 musste es sich zurückziehen.",
+      "Zehntausende Tote, die meisten Zivilpersonen."),
+    H("kongo-1", "Erster Kongokrieg", "war", 3, 1996, 1997, ["COD"], ["RWA", "UGA", "AGO"],
+      [P("Ostkongo (Goma)", -1.68, 29.22), P("Kinshasa", -4.32, 15.31)], [[-1.95, 30.06, -1.68, 29.22]],
+      "Ruanda und Uganda unterstützten Rebellen unter Laurent-Désiré Kabila, die den Diktator Mobutu stürzten. Dabei wurden viele ruandische Hutu-Geflüchtete getötet.",
+      "Zehntausende bis Hunderttausende Tote."),
+    H("nepal", "Nepalesischer Bürgerkrieg", "insurg", 2, 1996, 2006, ["NPL"], [],
+      [P("Westnepal", 28.4, 82.6)], [],
+      "Maoistische Rebellen kämpften gegen die Monarchie. Nach dem Frieden 2006 wurde Nepal eine Republik.",
+      "Rund 17’000 Tote."),
+    H("kongo-2", "Zweiter Kongokrieg", "war", 3, 1998, 2003, ["COD"], ["RWA", "UGA", "BDI", "AGO", "ZWE", "NAM"],
+      [P("Ostkongo", -1.68, 29.22), P("Ituri", 1.56, 30.25), P("Kisangani", 0.52, 25.2)], [[-1.95, 30.06, 0.52, 25.2], [-17.83, 31.05, -4.32, 15.31]],
+      "Der «Afrikanische Weltkrieg»: Neun Staaten und Dutzende Milizen kämpften im Kongo, auch um Rohstoffe wie Coltan, Gold und Diamanten.",
+      "Schätzungsweise mehrere Millionen Tote, die meisten durch Hunger und Krankheiten."),
+    H("eritrea-aethiopien", "Eritreisch-Äthiopischer Krieg", "war", 2, 1998, 2000, ["ERI", "ETH"], [],
+      [P("Badme", 14.73, 37.8)], [],
+      "Ein Streit um das Grenzdorf Badme eskalierte zu einem Krieg mit Schützengräben wie im Ersten Weltkrieg. Erst 2018 schlossen beide Länder Frieden.",
+      "Rund 70’000 bis 100’000 Tote."),
+    H("kosovokrieg", "Kosovokrieg", "war", 2, 1998, 1999, ["XKX"], ["SRB", "USA"],
+      [P("Kosovo", 42.6, 20.9)], [],
+      "Die Befreiungsarmee UÇK kämpfte gegen serbische Truppen, die Hunderttausende Kosovo-Albaner vertrieben. Die NATO bombardierte 1999 Serbien bis zum Rückzug.",
+      "Rund 13’000 Tote."),
+    H("kargil", "Kargil-Krieg", "war", 1, 1999, 1999, [], ["IND", "PAK"],
+      [P("Kargil", 34.56, 76.13)], [],
+      "Pakistanische Soldaten und Kämpfer besetzten Höhenzüge auf der indischen Seite der Kontrolllinie in Kaschmir. Indien eroberte sie in harten Gebirgskämpfen zurück.",
+      "Über 1’000 Tote."),
+    H("tschetschenien-2", "Zweiter Tschetschenienkrieg", "civil", 2, 1999, 2009, [], ["RUS"],
+      [P("Grosny", 43.32, 45.69)], [],
+      "Unter Wladimir Putin eroberte Russland Tschetschenien zurück und setzte ein moskautreues Regime unter der Familie Kadyrow ein.",
+      "Zehntausende Tote."),
+    H("intifada-2", "Zweite Intifada", "insurg", 1, 2000, 2005, ["PSE"], ["ISR"],
+      [P("Westjordanland", 32.0, 35.25), P("Gazastreifen", 31.42, 34.38)], [],
+      "Ein gewaltsamer palästinensischer Aufstand mit Selbstmordanschlägen in Israel und israelischen Militäroffensiven. Israel baute danach eine Sperranlage um das Westjordanland.",
+      "Rund 4’000 Tote, davon rund 3’000 Palästinenser und 1’000 Israelis."),
+    H("afghanistan-2001", "Krieg in Afghanistan", "war", 3, 2001, 2021, ["AFG"], ["USA", "GBR", "DEU"],
+      [P("Kabul", 34.53, 69.17), P("Helmand", 31.6, 64.4), P("Kundus", 36.73, 68.86)], [[WASH[0], WASH[1], 34.53, 69.17]],
+      "Nach den Anschlägen vom 11. September 2001 stürzten die USA und Verbündete die Taliban. Die NATO kämpfte zwei Jahrzehnte gegen den Aufstand; 2021 übernahmen die Taliban nach dem Abzug wieder die Macht.",
+      "Über 170’000 Tote."),
+    H("irakkrieg", "Irakkrieg", "war", 3, 2003, 2011, ["IRQ"], ["USA", "GBR"],
+      [P("Bagdad", 33.31, 44.36), P("Falludscha", 33.35, 43.78)], [[WASH[0], WASH[1], 33.31, 44.36]],
+      "Die USA und Grossbritannien stürzten Saddam Hussein mit der Begründung, der Irak besitze Massenvernichtungswaffen; sie erwies sich als falsch. Danach versank das Land in Aufstand und konfessionellem Bürgerkrieg.",
+      "Schätzungen reichen von rund 150’000 bis über einer halben Million Toten."),
+    H("darfur", "Darfur-Konflikt", "civil", 3, 2003, 2020, ["SDN"], [],
+      [P("Darfur", 13.5, 24.5)], [],
+      "Die Regierung und arabische Janjawid-Milizen gingen brutal gegen Rebellen und die nicht-arabische Bevölkerung vor. Der Internationale Strafgerichtshof erliess Haftbefehl gegen Präsident al-Baschir, auch wegen Völkermords.",
+      "Rund 300’000 Tote (UNO-Schätzung), über 2 Millionen Vertriebene."),
+    H("kivu", "Kivu-Konflikt", "civil", 2, 2004, 2020, ["COD"], ["RWA"],
+      [P("Nord-Kivu", -0.8, 29.2), P("Ituri", 1.56, 30.25)], [],
+      "Auch nach dem offiziellen Kriegsende kämpften im Ostkongo zahlreiche Milizen, darunter 2012/13 die von Ruanda unterstützte M23, die kurzzeitig Goma eroberte.",
+      "Zehntausende Tote, Millionen Vertriebene."),
+    H("libanon-2006", "Libanonkrieg 2006", "war", 1, 2006, 2006, ["LBN"], ["ISR"],
+      [P("Südlibanon", 33.27, 35.45)], [],
+      "Nach der Entführung israelischer Soldaten durch die Hisbollah bombardierte Israel einen Monat lang Libanon, die Hisbollah feuerte Tausende Raketen auf Israel.",
+      "Rund 1’300 Tote im Libanon, 165 in Israel."),
+    H("kaukasuskrieg", "Kaukasuskrieg 2008", "war", 1, 2008, 2008, ["GEO"], ["RUS"],
+      [P("Südossetien", 42.23, 43.97)], [],
+      "Nach Kämpfen um Südossetien marschierte Russland in Georgien ein. Danach erkannte Russland Südossetien und Abchasien als Staaten an.",
+      "Rund 850 Tote."),
+    H("gaza-2008", "Gazakrieg 2008/09", "war", 1, 2008, 2009, ["PSE"], ["ISR"],
+      [P("Gazastreifen", 31.42, 34.38)], [],
+      "Israel reagierte auf Raketenbeschuss mit einer dreiwöchigen Offensive im Gazastreifen.",
+      "Rund 1’400 Tote im Gazastreifen, 13 in Israel."),
+    H("libyen", "Libyen: Revolution & Bürgerkrieg", "civil", 2, 2011, 2020, ["LBY"], [],
+      [P("Tripolis", 32.89, 13.19), P("Bengasi", 32.12, 20.07)], [],
+      "Ein Aufstand mit NATO-Luftunterstützung stürzte 2011 Muammar al-Gaddafi. Danach zerfiel das Land in rivalisierende Regierungen und Milizen, unterstützt von der Türkei, Russland und den Emiraten.",
+      "Zehntausende Tote."),
+    H("syrien-buergerkrieg", "Syrischer Bürgerkrieg", "civil", 3, 2011, 2024, ["SYR"], ["RUS", "IRN", "TUR", "USA"],
+      [P("Aleppo", 36.2, 37.16), P("Damaskus", 33.51, 36.29), P("Rakka", 35.95, 39.01)], [[MOSKAU[0], MOSKAU[1], 33.51, 36.29]],
+      "Assad liess Proteste blutig niederschlagen, daraus wurde ein Krieg mit Rebellen, dem «Islamischen Staat» und kurdischen Kräften. Russland und Iran retteten das Regime, bis Rebellen es im Dezember 2024 stürzten.",
+      "Schätzungen: 500’000 bis über 600’000 Tote; rund die Hälfte der Bevölkerung wurde vertrieben."),
+    H("suedsudan-buergerkrieg", "Südsudanesischer Bürgerkrieg", "civil", 3, 2013, 2018, ["SSD"], [],
+      [P("Juba", 4.85, 31.58), P("Malakal", 9.53, 31.66)], [],
+      "Zwei Jahre nach der Unabhängigkeit eskalierte der Machtkampf zwischen Präsident Salva Kiir und Vizepräsident Riek Machar zu einem Bürgerkrieg entlang ethnischer Linien.",
+      "Schätzungen: rund 400’000 Tote, auch durch Hunger."),
+    H("donbas", "Krieg im Donbas", "war", 2, 2014, 2021, ["UKR"], ["RUS"],
+      [P("Donezk", 48.0, 37.8), P("Krim (annektiert)", 45.0, 34.1)], [],
+      "Nach der Annexion der Krim unterstützte Russland Separatisten in Donezk und Luhansk mit Waffen und Soldaten. Trotz der Minsker Abkommen ging der Krieg an der Front weiter.",
+      "Rund 14’000 Tote."),
+    H("gaza-2014", "Gazakrieg 2014", "war", 1, 2014, 2014, ["PSE"], ["ISR"],
+      [P("Gazastreifen", 31.42, 34.38)], [],
+      "In einem 50-tägigen Krieg zwischen Israel und der Hamas wurden grosse Teile des Gazastreifens zerstört.",
+      "Rund 2’250 Tote im Gazastreifen, 73 in Israel."),
+    H("is-irak", "Krieg gegen den «Islamischen Staat» im Irak", "civil", 2, 2014, 2017, ["IRQ"], ["USA"],
+      [P("Mossul", 36.34, 43.13), P("Sindschar", 36.32, 41.86)], [],
+      "Der IS eroberte 2014 Mossul und weite Teile des Irak und verübte einen Völkermord an den Jesiden. Irakische und kurdische Truppen eroberten das Gebiet mit Unterstützung einer US-geführten Koalition bis 2017 zurück.",
+      "Zehntausende Tote; Tausende Jesidinnen wurden versklavt."),
+    H("bergkarabach-2020", "Bergkarabach-Krieg 2020 & Offensive 2023", "war", 1, 2020, 2023, ["AZE"], ["ARM"],
+      [P("Bergkarabach", 39.82, 46.75)], [],
+      "In einem 44-tägigen Krieg eroberte Aserbaidschan mit türkischen Drohnen grosse Teile Bergkarabachs zurück. Nach einer Offensive 2023 floh fast die gesamte armenische Bevölkerung.",
+      "Rund 7’000 Tote 2020; über 100’000 Menschen flohen 2023."),
+    H("tigray-2020", "Tigray-Krieg", "civil", 3, 2020, 2022, ["ETH"], ["ERI"],
+      [P("Mekelle", 13.5, 39.47)], [[15.32, 38.93, 13.5, 39.47]],
+      "Die Bundesregierung und eritreische Truppen kämpften gegen die TPLF in Tigray. Massaker, sexuelle Gewalt und eine Hungerblockade prägten den Krieg, der 2022 mit dem Abkommen von Pretoria endete.",
+      "Schätzungen: rund 160’000 bis 600’000 Tote."),
+    H("hisbollah-2023", "Israel – Hisbollah 2023/24", "war", 2, 2023, 2024, ["LBN"], ["ISR"],
+      [P("Südlibanon", 33.27, 35.45)], [],
+      "Nach dem 7. Oktober 2023 beschoss die Hisbollah Nordisrael. Im Herbst 2024 tötete Israel Hisbollah-Chef Nasrallah und marschierte in den Südlibanon ein; im November 2024 folgte eine Waffenruhe.",
+      "Über 4’000 Tote im Libanon."),
+    H("zwoelftagekrieg", "Zwölftagekrieg Israel – Iran", "war", 1, 2025, 2025, ["IRN"], ["ISR", "USA"],
+      [P("Natanz", 33.72, 51.73), P("Teheran", 35.69, 51.39)], [[32.08, 34.78, 35.69, 51.39], [35.69, 51.39, 32.08, 34.78]],
+      "Im Juni 2025 griff Israel iranische Atomanlagen und Militärführer an, die USA bombardierten die Anlagen in Fordo und Natanz. Iran feuerte Hunderte Raketen auf Israel.",
+      "Hunderte Tote im Iran, 28 in Israel.")
+  ];
+
+  NOW.forEach(c => { c.to = null; c.current = true; });
+  const ALL = NOW.concat(HISTORY);
+
+  /* ================= Zustand & Helfer ================= */
   const $ = (s, r) => (r || document).querySelector(s);
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const hexRgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
@@ -610,50 +1176,59 @@
   const colorOf = c => TYPES[c.type].color;
   const fmtCoord = (lat, lng) => `${Math.abs(lat).toFixed(1)}° ${lat >= 0 ? "N" : "S"} · ${Math.abs(lng).toFixed(1)}° ${lng >= 0 ? "O" : "W"}`;
   const bars = l => `<span class="bars" data-l="${l}" aria-hidden="true"><i></i><i></i><i></i></span>`;
+  const years = c => c.current ? `seit ${c.since}` : (c.from === c.to ? String(c.from) : `${c.from}–${c.to}`);
+  const nameOf = id => NAMES[id] || id;
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const isMobile = () => window.matchMedia("(max-width: 760px)").matches;
 
-  const byId = Object.fromEntries(CONFLICTS.map(c => [c.id, c]));
+  const byId = Object.fromEntries(ALL.map(c => [c.id, c]));
+  const order = Object.fromEntries(ALL.map((c, i) => [c.id, i]));
   const active = new Set(Object.keys(TYPES));
+  let year = NOW_YEAR;
   let selected = null;
   let hoverPoly = null;
 
-  // Land → Konflikte
   const theatreOf = {}, involvedOf = {};
-  CONFLICTS.forEach(c => {
+  ALL.forEach(c => {
     c.countries.forEach(id => (theatreOf[id] = theatreOf[id] || []).push(c));
     c.involved.forEach(id => (involvedOf[id] = involvedOf[id] || []).push(c));
   });
-  const visible = c => active.has(c.type);
-  const order = Object.fromEntries(CONFLICTS.map((c, i) => [c.id, i]));
+  const activeIn = (c, y) => c.from <= y && (c.to === null || c.to >= y);
+  const visible = c => active.has(c.type) && activeIn(c, year);
   const sortConf = (a, b) => b.level - a.level || order[a.id] - order[b.id];
-
-  const CREDITS = `<p class="credits">Auswahl ohne Anspruch auf Vollständigkeit, sortiert nach Intensität und Bedeutung. Zusammengestellt aus Berichten von Crisis Group (CrisisWatch), ACLED, UNO, AP, Reuters, Al Jazeera u. a.; Opferzahlen sind Schätzungen. Karten: Natural Earth · Bilder: NASA.</p>`;
 
   /* ================= Panel ================= */
   const listEl = $("#list"), detailEl = $("#detail"), panel = $("#panel");
+  const CREDITS = `<p class="credits">Auswahl ohne Anspruch auf Vollständigkeit: ${NOW.length} aktuelle und ${HISTORY.length} vergangene Konflikte, Länder in heutigen Grenzen. Die Balken der Zeitleiste zeigen, wie viele davon im jeweiligen Jahr aktiv waren. Aktuelle Lage nach Crisis Group (CrisisWatch), ACLED, UNO, AP, Reuters, Al Jazeera u. a. (Stand 10. November 2026); Opferzahlen sind Schätzungen. Karten: Natural Earth · Bilder: NASA.</p>`;
 
-  function renderStats() {
-    const vis = CONFLICTS.filter(visible);
+  function renderHeader() {
+    const past = year < NOW_YEAR;
+    $("#eyebrow").innerHTML = past
+      ? `<svg class="clock" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 4.5V8l2.5 1.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Zeitreise · Weltlage im Jahr ${year}`
+      : `<span class="live" aria-hidden="true"></span>Lagebild · Stand 10. November 2026`;
+    const vis = ALL.filter(visible);
     const high = vis.filter(c => c.level === 3).length;
     const countries = new Set(vis.flatMap(c => c.countries.concat(c.involved)));
     $("#stats").innerHTML =
       `<div class="stat"><b>${vis.length}</b><span>Konflikte</span></div>` +
-      `<div class="stat"><b>${high}</b><span>hohe Intensität</span></div>` +
+      `<div class="stat"><b>${high}</b><span>${past ? "grosse Kriege" : "hohe Intensität"}</span></div>` +
       `<div class="stat"><b>${countries.size}</b><span>Länder betroffen</span></div>`;
-  }
-
-  function renderFilters() {
     $("#filters").innerHTML = Object.entries(TYPES).map(([k, t]) => {
-      const n = CONFLICTS.filter(c => c.type === k).length;
+      const n = ALL.filter(c => c.type === k && activeIn(c, year)).length;
       return `<button type="button" class="chip" data-type="${k}" aria-pressed="${active.has(k)}" style="color:${t.color}">` +
-        `<span class="dot" style="background:${t.color}"></span><span style="color:var(--fg)">${t.label}</span><span class="n">${n}</span></button>`;
+        `<span class="dot" style="background:${t.color}"></span><span style="color:var(--fg)">${t.label}</span><span class="n${n ? "" : " zero"}">${n}</span></button>`;
     }).join("");
+    $("#legend-note").textContent = past
+      ? "Vergangene Konflikte nach Todesopfern: hoch ab 100’000, mittel ab 10’000."
+      : "Aktuelle Konflikte nach Heftigkeit der Kämpfe heute.";
   }
 
   function renderList() {
-    const vis = CONFLICTS.filter(visible).sort(sortConf);
-    if (!vis.length) { listEl.innerHTML = `<p class="empty">Keine Kategorie ausgewählt. Tippe oben auf eine Kategorie, um Konflikte einzublenden.</p>`; return; }
+    const vis = ALL.filter(visible).sort(sortConf);
+    if (!vis.length) {
+      listEl.innerHTML = `<p class="empty">${active.size ? `Im Jahr ${year} ist in dieser Auswahl kein Konflikt der gewählten Arten verzeichnet.` : "Keine Kategorie ausgewählt. Tippe oben auf eine Kategorie, um Konflikte einzublenden."}</p>` + CREDITS;
+      return;
+    }
     let html = "";
     [3, 2, 1].forEach(l => {
       const g = vis.filter(c => c.level === l);
@@ -661,52 +1236,63 @@
       html += `<div class="group-h">${bars(l)}${LEVEL[l]} · ${g.length}</div>`;
       html += g.map(c => `<button type="button" class="item" data-id="${c.id}" style="--c:${colorOf(c)}">` +
         `<span class="mk" aria-hidden="true"></span><span class="nm">${esc(c.name)}</span>` +
-        `<span class="yr">seit ${esc(c.since)}</span><span class="st">${esc(TYPES[c.type].label)} · ${esc(c.status)}</span></button>`).join("");
+        `<span class="yr">${esc(years(c))}</span><span class="st">${esc(TYPES[c.type].label)}${c.current ? " · " + esc(c.status) : ""}</span></button>`).join("");
     });
     listEl.innerHTML = html + CREDITS;
   }
 
   function renderDetail(c) {
     const p = c.points[0];
-    const related = [...new Set(c.countries.flatMap(id => theatreOf[id] || []).concat(c.countries.flatMap(id => involvedOf[id] || [])))].filter(x => x !== c);
-    const where = c.countries.concat(c.involved).map(id => NAMES[id]).filter(Boolean);
+    const here = c.countries.concat(c.involved);
+    const related = [...new Set(here.flatMap(id => (theatreOf[id] || []).concat(involvedOf[id] || [])))]
+      .filter(x => x !== c && activeIn(x, year)).sort(sortConf);
+    const where = c.countries.map(nameOf);
+    const inv = c.involved.map(nameOf);
+    const levelLabel = c.current ? `Intensität ${LEVEL_SHORT[c.level]}` : `Grösse ${LEVEL_SHORT[c.level]}`;
     detailEl.innerHTML = `<div class="detail-in" style="--c:${colorOf(c)}">
-      <button type="button" class="back" id="back">← Alle Konflikte</button>
+      <button type="button" class="back" id="back">← Alle Konflikte${year < NOW_YEAR ? " im Jahr " + year : ""}</button>
       <div class="tags">
         <span class="tag type"><span class="dot" style="background:var(--c)"></span>${esc(TYPES[c.type].long)}</span>
-        <span class="tag">${bars(c.level)} Intensität ${LEVEL_SHORT[c.level]}</span>
-        <span class="tag">${esc(c.status)}</span>
+        <span class="tag">${bars(c.level)} ${levelLabel}</span>
+        ${c.current ? `<span class="tag">${esc(c.status)}</span>` : `<span class="tag yrs">${esc(years(c))}</span>`}
       </div>
       <h2 class="d-title">${esc(c.name)}</h2>
-      <div class="coords"><span>${fmtCoord(p.lat, p.lng)}</span><span>seit ${esc(c.sinceLong)}</span></div>
+      <div class="coords"><span>${fmtCoord(p.lat, p.lng)}</span><span>${c.current ? "seit " + esc(c.sinceLong) : esc(years(c))}</span></div>
       <p class="lead">${esc(c.lead)}</p>
-      <div class="sec news"><h3>Neueste Entwicklung</h3><p>${esc(c.news)}</p></div>
-      <div class="sec"><h3>Konfliktparteien</h3><ul class="parties">${c.parties.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>
+      ${c.current ? `<div class="sec news"><h3>Neueste Entwicklung${year < NOW_YEAR ? " · Stand Nov. 2026" : ""}</h3><p>${esc(c.news)}</p></div>` : ""}
+      ${c.parties ? `<div class="sec"><h3>Konfliktparteien</h3><ul class="parties">${c.parties.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
       ${c.toll ? `<div class="sec"><h3>Opfer &amp; Folgen</h3><p>${esc(c.toll)}</p></div>` : ""}
       <div class="sec"><h3>Brennpunkte</h3><p>${c.points.map(x => esc(x.n)).join(" · ")}</p></div>
-      ${where.length ? `<div class="sec"><h3>Betroffene Länder</h3><p>${where.map(esc).join(", ")}</p></div>` : ""}
-      ${related.length ? `<div class="sec"><h3>Weitere Konflikte hier</h3><div class="rel">${related.map(r =>
+      ${where.length ? `<div class="sec"><h3>Schauplatz (heutige Grenzen)</h3><p>${where.map(esc).join(", ")}</p></div>` : ""}
+      ${inv.length ? `<div class="sec"><h3>Ebenfalls beteiligt</h3><p>${inv.map(esc).join(", ")}</p></div>` : ""}
+      ${related.length ? `<div class="sec"><h3>Gleichzeitig in diesen Ländern</h3><div class="rel">${related.map(r =>
         `<button type="button" data-id="${r.id}"><span class="dot" style="background:${colorOf(r)}"></span>${esc(r.name)}</button>`).join("")}</div></div>` : ""}
     </div>${CREDITS}`;
   }
 
-  function showList() {
+  function setHash(h) {
+    try { history.replaceState(null, "", h ? "#" + h : location.pathname + location.search); } catch (e) { /* Hash bleibt */ }
+  }
+
+  function showList(opts) {
     selected = null;
     detailEl.hidden = true; listEl.hidden = false;
     panel.classList.remove("has-detail");
-    try { if (location.hash) history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* Hash bleibt stehen */ }
-    refreshGlobe();
+    if (!opts || !opts.keepHash) setHash(year < NOW_YEAR ? "jahr-" + year : "");
+    if (!opts || !opts.noRefresh) refreshGlobe();
   }
 
   function select(id, opts) {
     const c = byId[id];
     if (!c) return;
-    if (!active.has(c.type)) { active.add(c.type); renderFilters(); renderStats(); renderList(); }
+    if (!activeIn(c, year)) setYear(Math.max(MIN_YEAR, c.from), { keepSelection: true });
+    if (!active.has(c.type)) { active.add(c.type); renderHeader(); renderList(); drawHist(); }
     selected = c;
     renderDetail(c);
     listEl.hidden = true; detailEl.hidden = false; detailEl.scrollTop = 0;
     panel.classList.add("has-detail");
-    if (!opts || !opts.fromHash) { try { history.replaceState(null, "", "#" + id); } catch (e) { /* ignorieren */ } }
+    if (!opts || !opts.fromHash) setHash(id);
+    stopPlay();
     stopRotate();
     flyTo(c);
     refreshGlobe();
@@ -716,8 +1302,8 @@
     const b = e.target.closest(".chip"); if (!b) return;
     const k = b.dataset.type;
     active.has(k) ? active.delete(k) : active.add(k);
-    if (selected && !active.has(selected.type)) showList();
-    renderFilters(); renderStats(); renderList(); refreshGlobe();
+    if (selected && !active.has(selected.type)) showList({ noRefresh: true });
+    renderHeader(); renderList(); drawHist(); refreshGlobe();
   });
   listEl.addEventListener("click", e => { const b = e.target.closest(".item"); if (b) select(b.dataset.id); });
   detailEl.addEventListener("click", e => {
@@ -727,24 +1313,121 @@
   $("#handle").addEventListener("click", () => {
     const tall = panel.classList.toggle("tall");
     $("#handle").setAttribute("aria-label", tall ? "Liste verkleinern" : "Liste vergrössern");
-    setTimeout(() => { if (window.Globe) { layoutGlobe(); world.pointOfView(selected ? { altitude: Math.max(1.1, baseAltitude() * 0.68) } : { altitude: baseAltitude() }, 300); } }, 320);
+    setTimeout(() => { if (world) { layoutGlobe(); world.pointOfView({ altitude: selected ? detailAltitude() : baseAltitude() }, 300); } }, 320);
   });
+
+  /* ================= Zeitreise ================= */
+  const yearInput = $("#year"), yearOut = $("#year-out"), histEl = $("#hist");
+  let playTimer = null;
+
+  function drawHist() {
+    const rows = [];
+    let max = 1;
+    for (let y = MIN_YEAR; y <= NOW_YEAR; y++) {
+      const counts = {};
+      ALL.forEach(c => { if (active.has(c.type) && activeIn(c, y)) counts[c.type] = (counts[c.type] || 0) + 1; });
+      const total = Object.values(counts).reduce((a, b) => a + b, 0);
+      max = Math.max(max, total);
+      rows.push(counts);
+    }
+    const Hh = 38;
+    let s = `<rect x="${year - MIN_YEAR - 0.5}" y="0" width="1" height="${Hh}" fill="rgba(255,255,255,0.10)"/>`;
+    rows.forEach((counts, i) => {
+      let yy = Hh;
+      const cur = i === year - MIN_YEAR;
+      Object.keys(TYPES).forEach(k => {
+        const n = counts[k]; if (!n) return;
+        const h = n / max * (Hh - 2);
+        yy -= h;
+        s += `<rect x="${i - 0.38}" y="${yy.toFixed(2)}" width="0.76" height="${h.toFixed(2)}" fill="${TYPES[k].color}" fill-opacity="${cur ? 1 : 0.5}"/>`;
+      });
+    });
+    histEl.setAttribute("viewBox", `-0.5 0 ${NOW_YEAR - MIN_YEAR + 1} ${Hh}`);
+    histEl.innerHTML = s;
+  }
+
+  function setYear(y, opts) {
+    y = Math.max(MIN_YEAR, Math.min(NOW_YEAR, Math.round(y)));
+    const keep = !!(opts && opts.keepSelection);
+    const changedEra = (y < NOW_YEAR) !== (year < NOW_YEAR);
+    year = y;
+    yearInput.value = String(y);
+    yearInput.setAttribute("aria-valuetext", y === NOW_YEAR ? "Heute, 2026" : String(y));
+    yearOut.textContent = String(y);
+    const k = $("#year-k");
+    k.textContent = y === NOW_YEAR ? "Heute" : "Zeitreise";
+    k.classList.toggle("past", y < NOW_YEAR);
+    $("#now").hidden = y === NOW_YEAR;
+    if (!keep) {
+      if (selected && !activeIn(selected, y)) showList({ noRefresh: true, keepHash: true });
+      if (selected) renderDetail(selected);
+      else setHash(y < NOW_YEAR ? "jahr-" + y : "");
+    }
+    renderHeader(); renderList(); drawHist();
+    if (changedEra) applyTexture();
+    refreshGlobe();
+  }
+
+  function stopPlay() {
+    if (playTimer) { clearInterval(playTimer); playTimer = null; }
+    const b = $("#play");
+    b.setAttribute("aria-pressed", "false");
+    b.setAttribute("aria-label", "Zeitreise abspielen");
+    $("#play-ico").setAttribute("d", "M4 2.5v11l9-5.5z");
+  }
+  function startPlay() {
+    if (selected) showList({ noRefresh: true });
+    if (year >= NOW_YEAR) setYear(MIN_YEAR);
+    const b = $("#play");
+    b.setAttribute("aria-pressed", "true");
+    b.setAttribute("aria-label", "Zeitreise anhalten");
+    $("#play-ico").setAttribute("d", "M4 2.5h3v11H4zM9 2.5h3v11H9z");
+    playTimer = setInterval(() => {
+      if (year >= NOW_YEAR) { stopPlay(); return; }
+      setYear(year + 1);
+      if (year >= NOW_YEAR) stopPlay();
+    }, 520);
+  }
+
+  yearInput.addEventListener("input", () => { stopPlay(); setYear(+yearInput.value); });
+  $("#play").addEventListener("click", () => (playTimer ? stopPlay() : startPlay()));
+  $("#now").addEventListener("click", () => { stopPlay(); setYear(NOW_YEAR); });
+  $(".tl-jumps").addEventListener("click", e => {
+    const b = e.target.closest("button[data-y]"); if (!b) return;
+    stopPlay(); if (selected) showList({ noRefresh: true }); setYear(+b.dataset.y);
+  });
+
   window.addEventListener("hashchange", () => {
-    const id = location.hash.slice(1);
-    if (byId[id]) { if (!selected || selected.id !== id) select(id, { fromHash: true }); }
+    const h = location.hash.slice(1);
+    const m = /^jahr-(\d{4})$/.exec(h);
+    if (m) { if (selected) showList({ noRefresh: true, keepHash: true }); setYear(+m[1]); return; }
+    if (byId[h]) { if (!selected || selected.id !== h) select(h, { fromHash: true }); }
     else if (selected) showList();
   });
 
-  renderFilters(); renderStats(); renderList();
-
   /* ================= Globus ================= */
+  let world = null;
+  let applyTexture = () => {};
+  let layoutGlobe = () => {};
+  let baseAltitude = () => 2.2;
+  let detailAltitude = () => 1.5;
+  function stopRotate() { if (world) world.controls().autoRotate = false; }
+  function refreshGlobe() { if (world) { refreshPolygons(); refreshLayers(); } }
+  function flyTo(c) {
+    if (!world) return;
+    const p = c.points[0];
+    world.pointOfView({ lat: p.lat, lng: p.lng, altitude: detailAltitude() }, reduceMotion ? 0 : 1300);
+  }
+
+  renderHeader(); renderList(); drawHist();
+
   const globeEl = $("#globe");
   if (typeof Globe === "undefined") {
-    $("#loading").textContent = "Der 3D-Globus konnte nicht geladen werden. Die Liste links funktioniert trotzdem.";
+    $("#loading").textContent = "Der 3D-Globus konnte nicht geladen werden. Liste und Zeitreise funktionieren trotzdem.";
     return;
   }
 
-  const world = new Globe(globeEl, { animateIn: !reduceMotion })
+  world = new Globe(globeEl, { animateIn: !reduceMotion })
     .backgroundImageUrl("stars.jpg")
     .globeImageUrl("earth-day.jpg")
     .bumpImageUrl("earth-bump.jpg")
@@ -753,63 +1436,65 @@
     .atmosphereAltitude(0.17)
     .onGlobeReady(() => { $("#loading").hidden = true; });
 
-  // Datenpunkte
-  const allPoints = CONFLICTS.flatMap(c => c.points.map((p, i) => ({ c, p, primary: i === 0, lat: p.lat, lng: p.lng })));
-  const allArcs = CONFLICTS.flatMap(c => c.arcs.map(a => ({ c, startLat: a[0], startLng: a[1], endLat: a[2], endLng: a[3] })));
+  const allPoints = ALL.flatMap(c => c.points.map((p, i) => ({ c, p, primary: i === 0, lat: p.lat, lng: p.lng })));
+  const allArcs = ALL.flatMap(c => c.arcs.map(a => ({ c, startLat: a[0], startLng: a[1], endLat: a[2], endLng: a[3] })));
 
   function tipConflict(c, place) {
     return `<div class="tt-h">${esc(c.name)}</div>` + (place ? `<div class="tt-s">${esc(place)}</div>` : "") +
-      `<div class="tt-r"><span class="dot" style="background:${colorOf(c)}"></span>${esc(TYPES[c.type].label)} · ${esc(c.status)}</div>`;
+      `<div class="tt-r"><span class="dot" style="background:${colorOf(c)}"></span>${esc(TYPES[c.type].label)} · ${esc(c.current ? c.status : years(c))}</div>`;
   }
 
-  function polyInfo(f) {
-    const th = (theatreOf[f.id] || []).filter(visible).sort(sortConf);
-    const inv = (involvedOf[f.id] || []).filter(visible).sort(sortConf);
-    return { th, inv, top: th[0] || null, topInv: inv[0] || null };
+  // Pro Aktualisierung einmal berechnen: Land → sichtbare Konflikte
+  let polyCache = {};
+  function buildPolyCache() {
+    polyCache = {};
+    const add = (key, id, c) => { const o = polyCache[id] || (polyCache[id] = { th: [], inv: [] }); o[key].push(c); };
+    ALL.forEach(c => {
+      if (!visible(c)) return;
+      c.countries.forEach(id => add("th", id, c));
+      c.involved.forEach(id => add("inv", id, c));
+    });
+    Object.values(polyCache).forEach(o => { o.th.sort(sortConf); o.inv.sort(sortConf); });
   }
-
-  function refreshGlobe() {
-    refreshPolygons();
-    refreshLayers();
-  }
+  const EMPTY = { th: [], inv: [] };
+  const info = f => polyCache[f.id] || EMPTY;
 
   function refreshPolygons() {
+    buildPolyCache();
     const sel = selected;
     const selCountries = new Set(sel ? sel.countries : []);
     const selInvolved = new Set(sel ? sel.involved : []);
-
     world
       .polygonAltitude(f => {
-        const { top } = polyInfo(f);
-        let a = top ? 0.009 : 0.004;
+        const { th, inv } = info(f);
+        let a = th.length ? 0.009 : 0.004;
         if (selCountries.has(f.id)) a = 0.028;
-        if (f === hoverPoly && (top || polyInfo(f).topInv)) a += 0.01;
+        if (f === hoverPoly && (th.length || inv.length)) a += 0.01;
         return a;
       })
       .polygonCapColor(f => {
-        const { top } = polyInfo(f);
+        const top = info(f).th[0];
         if (selCountries.has(f.id)) return rgba(colorOf(sel), 0.72);
         if (!top) return "rgba(0,0,0,0)";
         const alpha = [0, 0.26, 0.4, 0.55][top.level] * (sel ? 0.55 : 1);
         return rgba(colorOf(top), f === hoverPoly ? Math.min(alpha + 0.2, 0.8) : alpha);
       })
       .polygonSideColor(f => {
-        const { top } = polyInfo(f);
+        const top = info(f).th[0];
         if (selCountries.has(f.id)) return rgba(colorOf(sel), 0.35);
         return top ? rgba(colorOf(top), 0.18) : "rgba(0,0,0,0)";
       })
       .polygonStrokeColor(f => {
-        const { top, topInv } = polyInfo(f);
+        const { th, inv } = info(f);
         if (selCountries.has(f.id) || selInvolved.has(f.id)) return rgba(colorOf(sel), 1);
-        if (top) return rgba(colorOf(top), sel ? 0.5 : 0.9);
-        if (topInv) return rgba(colorOf(topInv), sel ? 0.35 : 0.75);
+        if (th[0]) return rgba(colorOf(th[0]), sel ? 0.5 : 0.9);
+        if (inv[0]) return rgba(colorOf(inv[0]), sel ? 0.35 : 0.75);
         return "rgba(220,230,245,0.14)";
       })
       .polygonLabel(f => {
-        const { th, inv } = polyInfo(f);
+        const { th, inv } = info(f);
         if (!th.length && !inv.length) return "";
-        const name = NAMES[f.id] || f.properties.n;
-        let h = `<div class="tt-h">${esc(name)}</div>`;
+        let h = `<div class="tt-h">${esc(nameOf(f.id))}${year < NOW_YEAR ? ` · ${year}` : ""}</div>`;
         th.forEach(c => { h += `<div class="tt-r"><span class="dot" style="background:${colorOf(c)}"></span>${esc(c.name)}</div>`; });
         inv.forEach(c => { h += `<div class="tt-r"><span class="dot" style="box-shadow:inset 0 0 0 1.5px ${colorOf(c)}"></span>beteiligt: ${esc(c.name)}</div>`; });
         return h;
@@ -825,18 +1510,16 @@
       .pointAltitude(d => d.c === sel ? 0.06 : 0.015)
       .pointRadius(d => (d.c === sel ? 0.55 : 0.28 + d.c.level * 0.07))
       .pointLabel(d => tipConflict(d.c, d.p.n));
-
     world.ringsData(reduceMotion ? [] : pts.filter(d => d.primary || d.c.level >= 2 || d.c === sel));
-
     world
       .arcsData(allArcs.filter(d => visible(d.c) && (!sel || d.c === sel)))
       .arcColor(d => [rgba(colorOf(d.c), 0.15), rgba(colorOf(d.c), 0.95)])
       .arcStroke(d => d.c === sel ? 0.9 : 0.45)
-      .arcLabel(d => tipConflict(d.c, "Angriffe / Unterstützung von aussen"));
+      .arcLabel(d => tipConflict(d.c, "Angriff oder Unterstützung von aussen"));
   }
 
   world
-    .polygonsTransitionDuration(250)
+    .polygonsTransitionDuration(reduceMotion ? 0 : 250)
     .pointsMerge(false)
     .pointResolution(16)
     .ringColor(d => t => rgba(colorOf(d.c), Math.max(0, 0.85 * (1 - t))))
@@ -844,20 +1527,19 @@
     .ringPropagationSpeed(d => 1 + d.c.level * 0.4)
     .ringRepeatPeriod(d => 2400 - d.c.level * 350)
     .ringAltitude(0.012)
-    .arcAltitudeAutoScale(0.35)
+    .arcAltitude(d => {
+      // Bogenhöhe mit der Distanz, aber gedeckelt, damit Langstreckenbögen nicht ins All ragen
+      const r = Math.PI / 180;
+      const cos = Math.sin(d.startLat * r) * Math.sin(d.endLat * r) +
+        Math.cos(d.startLat * r) * Math.cos(d.endLat * r) * Math.cos((d.endLng - d.startLng) * r);
+      return Math.min(0.32, 0.35 * Math.acos(Math.max(-1, Math.min(1, cos))));
+    })
     .arcDashLength(0.45)
     .arcDashGap(0.25)
     .arcDashInitialGap(() => Math.random())
     .arcDashAnimateTime(reduceMotion ? 0 : 2600)
-    .onPolygonHover(f => {
-      hoverPoly = f || null;
-      refreshPolygons();
-    })
-    .onPolygonClick(f => {
-      const { top, topInv } = polyInfo(f);
-      const c = top || topInv;
-      if (c) select(c.id);
-    })
+    .onPolygonHover(f => { hoverPoly = f || null; refreshPolygons(); })
+    .onPolygonClick(f => { const o = info(f); const c = o.th[0] || o.inv[0]; if (c) select(c.id); })
     .onPointClick(d => select(d.c.id))
     .onArcClick(d => select(d.c.id))
     .onGlobeClick(() => { if (selected) showList(); });
@@ -867,57 +1549,62 @@
     .then(geo => { world.polygonsData(geo.features); refreshGlobe(); })
     .catch(() => { refreshGlobe(); });
 
-  /* Kamera, Grösse, Rotation */
   const controls = world.controls();
   controls.autoRotate = !reduceMotion;
   controls.autoRotateSpeed = 0.35;
   controls.enableDamping = true;
-  function stopRotate() { controls.autoRotate = false; }
   globeEl.addEventListener("pointerdown", stopRotate);
   globeEl.addEventListener("wheel", stopRotate, { passive: true });
 
-  function sheetOffset() { return isMobile() ? panel.getBoundingClientRect().height : 0; }
-  function layoutGlobe() {
-    const w = window.innerWidth, h = window.innerHeight;
-    world.width(w).height(h);
-    if (isMobile()) world.globeOffset([0, -sheetOffset() / 2]);
-    else world.globeOffset([(panel.getBoundingClientRect().right) / 2, 0]);
+  // Freier Bereich für den Globus (ohne Panel und Zeitleiste)
+  function freeArea() {
+    const W = window.innerWidth, Hh = window.innerHeight;
+    const pr = panel.getBoundingClientRect(), tr = $("#timeline").getBoundingClientRect();
+    if (isMobile()) return { l: 0, r: W, t: tr.bottom, b: pr.top, W, H: Hh };
+    return { l: pr.right, r: W, t: 0, b: tr.top, W, H: Hh };
   }
+  layoutGlobe = () => {
+    const a = freeArea();
+    world.width(a.W).height(a.H);
+    world.globeOffset([(a.l + a.r) / 2 - a.W / 2, (a.t + a.b) / 2 - a.H / 2]);
+  };
   // Kamerahöhe so wählen, dass der Globus den freien Bereich zu ~80 % füllt
-  function baseAltitude() {
-    const H = window.innerHeight;
-    const w = window.innerWidth - (isMobile() ? 0 : panel.getBoundingClientRect().right);
-    const h = H - sheetOffset();
-    const targetR = Math.min(w, h) * 0.41;
+  baseAltitude = () => {
+    const a = freeArea();
+    const targetR = Math.max(60, Math.min(a.r - a.l, a.b - a.t)) * 0.41;
     const fov = (world.camera().fov || 50) * Math.PI / 180;
-    const theta = Math.atan(targetR / (H / 2) * Math.tan(fov / 2));
-    return Math.min(8, Math.max(1.4, 1 / Math.sin(theta) - 1));
-  }
-  function flyTo(c) {
-    const p = c.points[0];
-    const alt = Math.max(1.1, baseAltitude() * 0.68);
-    world.pointOfView({ lat: p.lat, lng: p.lng, altitude: alt }, reduceMotion ? 0 : 1300);
-  }
+    const theta = Math.atan(targetR / (a.H / 2) * Math.tan(fov / 2));
+    return Math.min(9, Math.max(1.4, 1 / Math.sin(theta) - 1));
+  };
+  detailAltitude = () => Math.max(1.1, baseAltitude() * 0.68);
 
-  window.addEventListener("resize", layoutGlobe);
-  layoutGlobe();
-  world.pointOfView({ lat: 18, lng: 28, altitude: baseAltitude() }, 0);
-
-  /* Tag / Nacht */
+  let texMode = "day";
+  let currentTex = "earth-day.jpg";
+  applyTexture = () => {
+    const url = texMode === "night" ? "earth-night.jpg" : (year < NOW_YEAR ? "earth-past.jpg" : "earth-day.jpg");
+    if (url !== currentTex) { currentTex = url; world.globeImageUrl(url); }
+  };
   const texBtns = { day: $("#tex-day"), night: $("#tex-night") };
   function setTex(mode) {
-    world.globeImageUrl(mode === "night" ? "earth-night.jpg" : "earth-day.jpg");
+    texMode = mode;
     texBtns.day.setAttribute("aria-pressed", String(mode === "day"));
     texBtns.night.setAttribute("aria-pressed", String(mode === "night"));
+    applyTexture();
     try { localStorage.setItem("konflikte-tex", mode); } catch (e) { /* ohne Speicher weiter */ }
   }
   texBtns.day.addEventListener("click", () => setTex("day"));
   texBtns.night.addEventListener("click", () => setTex("night"));
   try { if (localStorage.getItem("konflikte-tex") === "night") setTex("night"); } catch (e) { /* ignorieren */ }
 
+  window.addEventListener("resize", () => layoutGlobe());
+  layoutGlobe();
+  world.pointOfView({ lat: 18, lng: 28, altitude: baseAltitude() }, 0);
   refreshGlobe();
-  const startId = location.hash.slice(1);
-  if (byId[startId]) setTimeout(() => select(startId, { fromHash: true }), 400);
+
+  const start = location.hash.slice(1);
+  const m = /^jahr-(\d{4})$/.exec(start);
+  if (m) setYear(+m[1]);
+  else if (byId[start]) setTimeout(() => select(start, { fromHash: true }), 400);
 })();
 </script>
 </body>
